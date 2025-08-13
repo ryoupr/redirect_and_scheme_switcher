@@ -1,5 +1,6 @@
 // Options page logic for managing regex redirect rules.
 const STORAGE_KEY = 'redirectRulesV1';
+const THEME_KEY = 'uiThemeV1';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -267,6 +268,22 @@ function debounce(fn, ms) {
 async function init() {
   let rules = await loadRules();
   if (!Array.isArray(rules)) rules = [];
+
+  // Theme init
+  const themeBtn = document.getElementById('themeToggle');
+  const applyTheme = (theme) => {
+    document.documentElement.setAttribute('data-theme', theme);
+    themeBtn.textContent = theme === 'dark' ? '🌙' : '☀';
+    themeBtn.setAttribute('aria-label', theme === 'dark' ? 'ダークモード' : 'ライトモード');
+  };
+  const { [THEME_KEY]: savedTheme } = await chrome.storage.local.get(THEME_KEY);
+  applyTheme(savedTheme || 'light');
+  themeBtn.addEventListener('click', async () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    await chrome.storage.local.set({ [THEME_KEY]: next });
+  });
 
   $('#addRule').addEventListener('click', async () => {
     rules.push({ id: uuid(), enabled: true, match: '', rewrite: '', target: '' });
