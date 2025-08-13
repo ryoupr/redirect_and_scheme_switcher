@@ -7,6 +7,26 @@ const BACKUP_KEY = 'redirectRulesBackupV1';
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+// Runtime i18n dictionary (for instant EN/JA toggle in Options page)
+let CURRENT_LOCALE = 'ja';
+let I18N_DICT = {};
+
+async function loadLocaleMessages(locale) {
+  try {
+    const base = (chrome?.runtime?.getURL ? chrome.runtime.getURL('') : '').replace(/\/?$/, '/');
+    const url = base ? `${base}_locales/${locale}/messages.json` : `./_locales/${locale}/messages.json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(String(res.status));
+    const json = await res.json();
+    I18N_DICT = json || {};
+    CURRENT_LOCALE = locale;
+  } catch (_) {
+    // Fallback to empty dict
+    I18N_DICT = {};
+    CURRENT_LOCALE = locale;
+  }
+}
+
 // Minimal stub for running options page outside extension (e.g., capture.html)
 if (typeof window !== 'undefined' && typeof window.chrome === 'undefined') {
   window.__demoRules = window.__demoRules || [];
@@ -311,7 +331,16 @@ function debounce(fn, ms) {
 }
 
 function i18n(id, fallback) {
-  try { return chrome.i18n.getMessage(id) || fallback; } catch { return fallback; }
+  // 1) runtime dict
+  const fromDict = I18N_DICT?.[id]?.message;
+  if (fromDict) return fromDict;
+  // 2) chrome.i18n (browser locale)
+  try {
+    const msg = chrome.i18n.getMessage(id);
+    if (msg) return msg;
+  } catch { /* ignore */ }
+  // 3) fallback
+  return fallback;
 }
 
 function applyStaticI18n() {
@@ -357,6 +386,12 @@ async function init() {
   let rules = await loadRules();
   if (!Array.isArray(rules)) rules = [];
   const isExtension = !!(chrome?.runtime?.id);
+  // Initialize locale
+  const { [LOCALE_KEY]: savedLocale } = await chrome.storage.local.get(LOCALE_KEY);
+  let locale = savedLocale || 'ja';
+  await loadLocaleMessages(locale);
+  applyStaticI18n();
+
   if (!isExtension && rules.length === 0) {
     // Seed demo rules for screenshots
     rules = [
@@ -365,7 +400,6 @@ async function init() {
     ];
     await saveRules(rules);
   }
-  applyStaticI18n();
 
   // Theme init
   const themeBtn = document.getElementById('themeToggle');
@@ -515,8 +549,6 @@ async function init() {
 
   // i18n toggle (basic, title bar only for now)
   const langBtn = $('#langToggle');
-  const { [LOCALE_KEY]: savedLocale } = await chrome.storage.local.get(LOCALE_KEY);
-  let locale = savedLocale || 'ja';
   const applyLocale = (lc) => {
     document.documentElement.lang = lc;
     langBtn.textContent = lc === 'ja' ? 'EN' : 'JA';
@@ -524,8 +556,14 @@ async function init() {
   applyLocale(locale);
   langBtn.addEventListener('click', async () => {
     locale = locale === 'ja' ? 'en' : 'ja';
+  await loadLocaleMessages(locale);
     applyLocale(locale);
     await chrome.storage.local.set({ [LOCALE_KEY]: locale });
+  // Re-apply static labels and rerender rules for dynamic labels
+  applyStaticI18n();
+  // Reload current rules to keep latest and re-render
+  rules = await loadRules();
+  renderRules(rules);
   });
 
   // JSON direct editor
