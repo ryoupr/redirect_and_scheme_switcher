@@ -2,6 +2,7 @@ import { generateId } from './lib/uuid.js';
 import { toast, showError } from './lib/notify.js';
 import { $, $$, debounce, button } from './lib/dom.js';
 import { loadDict, t as i18n } from './lib/i18n.js';
+import { validateRules } from './lib/validate.js';
 
 // Options page logic for managing regex redirect rules.
 const STORAGE_KEY = 'redirectRulesV1';
@@ -439,9 +440,10 @@ async function init() {
     if (!file) return;
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
-      if (!Array.isArray(data)) throw new Error('Invalid backup format');
-      await saveRules(data);
+  const data = JSON.parse(text);
+  const v = validateRules(data);
+  if (!v.ok) throw new Error('Invalid backup: \n' + v.errors.join('\n'));
+  await saveRules(v.data);
       rules = await loadRules();
       renderRules(rules);
       toast(i18n('toast_restored', '復元しました'));
@@ -475,7 +477,9 @@ async function init() {
     const text = await file.text();
     try {
       const data = JSON.parse(text);
-      const res = await chrome.runtime.sendMessage({ type: 'import-rules', rules: data });
+      const v = validateRules(data);
+      if (!v.ok) throw new Error('Invalid JSON: \n' + v.errors.join('\n'));
+      const res = await chrome.runtime.sendMessage({ type: 'import-rules', rules: v.data });
       if (res?.ok) {
         rules = await loadRules();
         renderRules(rules);
@@ -544,8 +548,9 @@ async function init() {
     e.preventDefault();
     try {
       const next = JSON.parse($('#jsonText').value);
-      if (!Array.isArray(next)) throw new Error('配列ではありません');
-      await saveRules(next);
+      const v = validateRules(next);
+      if (!v.ok) throw new Error('JSONが不正です:\n' + v.errors.join('\n'));
+      await saveRules(v.data);
       rules = await loadRules();
       renderRules(rules);
       $('#jsonEditor').close();
