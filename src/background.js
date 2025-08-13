@@ -190,7 +190,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // perform the redirect via tabs.update/create because DNR can't redirect to non-http.
 let nonHttpRulesCache = [];
 let schemeRulesCache = [];
-const redirectingTabs = new Set();
+const redirectState = new Map(); // tabId -> {ts:number,target:string}
 
 async function refreshNonHttpRules() {
   const { [STORAGE_KEY]: rules = [] } = await chrome.storage.sync.get(STORAGE_KEY);
@@ -216,7 +216,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     if (details.frameId !== 0) return; // main frame only
     const url = details.url || '';
     if (!/^https?:/i.test(url)) return;
-    if (redirectingTabs.has(details.tabId)) return;
+  const st = redirectState.get(details.tabId);
+  if (st && st.ts > Date.now() - 5000) return;
 
     // 1) Non-http redirect rules (target is custom scheme)
     for (const r of nonHttpRulesCache) {
@@ -226,12 +227,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         if (re.test(url)) target = url.replace(re, r.target);
       } catch { /* ignore invalid regex */ }
       if (target && target !== url) {
-        redirectingTabs.add(details.tabId);
+        redirectState.set(details.tabId, { ts: Date.now(), target });
         chrome.tabs.update(details.tabId, { url: target }, () => {
           if (chrome.runtime.lastError) {
             chrome.tabs.create({ url: target, index: details.tabId + 1 });
           }
-          setTimeout(() => redirectingTabs.delete(details.tabId), 1500);
         });
         return;
       }
@@ -247,12 +247,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
       if (match) {
         const target = transformScheme(url, r.schemeTarget || 'https');
         if (target && target !== url) {
-          redirectingTabs.add(details.tabId);
+          redirectState.set(details.tabId, { ts: Date.now(), target });
           chrome.tabs.update(details.tabId, { url: target }, () => {
             if (chrome.runtime.lastError) {
               chrome.tabs.create({ url: target, index: details.tabId + 1 });
             }
-            setTimeout(() => redirectingTabs.delete(details.tabId), 1500);
           });
           return;
         }
@@ -262,6 +261,15 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     // swallow
   }
 }, { url: [{ schemes: ['http', 'https'] }] });
+
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId !== 0) return;
+  redirectState.delete(details.tabId);
+});
+chrome.webNavigation.onErrorOccurred?.addListener((details) => {
+  if (details.frameId !== 0) return;
+  redirectState.delete(details.tabId);
+});
 
 function transformScheme(inputUrl, schemeTarget) {
   // Clear: remove only the first scheme prefix like 'https://'
