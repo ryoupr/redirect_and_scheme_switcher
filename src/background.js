@@ -26,6 +26,11 @@ chrome.runtime.onStartup?.addListener(async () => {
   await ensureInitialized();
 });
 
+// Open options page in a full tab when the action icon is clicked
+chrome.action.onClicked.addListener(() => {
+  chrome.runtime.openOptionsPage();
+});
+
 async function ensureInitialized() {
   const { [STORAGE_KEY]: rules = [] } = await chrome.storage.sync.get(STORAGE_KEY);
   await rebuildDynamicRules(rules);
