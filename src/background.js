@@ -243,8 +243,8 @@ function transformScheme(inputUrl, schemeTarget) {
     const rest = `${u.host}${u.pathname}${u.search}${u.hash}`;
     if (!schemeTarget || schemeTarget === 'https' || schemeTarget === 'http' || schemeTarget === 'custom' || /^[a-z][a-z0-9+.-]*$/i.test(schemeTarget)) {
       if (schemeTarget === 'clear') {
-        // Schemeless URL
-        return `//${rest}`;
+    // Remove scheme and // entirely: produce 'host/path?query#hash'
+    return `${rest}`;
       }
       const scheme = schemeTarget === 'custom' ? '' : schemeTarget;
       if (!scheme) return `//${rest}`;
@@ -254,7 +254,7 @@ function transformScheme(inputUrl, schemeTarget) {
     // Fallback regex if URL parsing fails
   }
   // Fallback: replace up to '://' at the start
-  if (schemeTarget === 'clear') return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?\/\//i, '//');
+  if (schemeTarget === 'clear') return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?\/\//i, '');
   const scheme = schemeTarget === 'custom' ? '' : schemeTarget;
   if (!scheme) return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?\/\//i, '//');
   return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?/i, `${scheme}:`).replace(/^([a-z][a-z0-9+.-]*:)?(?=\/\/)/i, `${scheme}:`);
