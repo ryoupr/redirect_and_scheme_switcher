@@ -1,5 +1,7 @@
 import { generateId } from './lib/uuid.js';
 import { toast, showError } from './lib/notify.js';
+import { $, $$, debounce, button } from './lib/dom.js';
+import { loadDict, t as i18n } from './lib/i18n.js';
 
 // Options page logic for managing regex redirect rules.
 const STORAGE_KEY = 'redirectRulesV1';
@@ -7,28 +9,10 @@ const THEME_KEY = 'uiThemeV1';
 const LOCALE_KEY = 'uiLocaleV1';
 const BACKUP_KEY = 'redirectRulesBackupV1';
 
-const $ = (sel, root = document) => root.querySelector(sel);
-const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+// moved to lib/dom
 
 // Runtime i18n dictionary (for instant EN/JA toggle in Options page)
 let CURRENT_LOCALE = 'ja';
-let I18N_DICT = {};
-
-async function loadLocaleMessages(locale) {
-  try {
-    const base = (chrome?.runtime?.getURL ? chrome.runtime.getURL('') : '').replace(/\/?$/, '/');
-    const url = base ? `${base}_locales/${locale}/messages.json` : `./_locales/${locale}/messages.json`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(String(res.status));
-    const json = await res.json();
-    I18N_DICT = json || {};
-    CURRENT_LOCALE = locale;
-  } catch (_) {
-    // Fallback to empty dict
-    I18N_DICT = {};
-    CURRENT_LOCALE = locale;
-  }
-}
 
 // Minimal stub for running options page outside extension (e.g., capture.html)
 if (typeof window !== 'undefined' && typeof window.chrome === 'undefined') {
@@ -321,26 +305,9 @@ function button(text, onClick) {
   return b;
 }
 
-function debounce(fn, ms) {
-  let t;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
-}
+// debounce moved to lib/dom
 
-function i18n(id, fallback) {
-  // 1) runtime dict
-  const fromDict = I18N_DICT?.[id]?.message;
-  if (fromDict) return fromDict;
-  // 2) chrome.i18n (browser locale)
-  try {
-    const msg = chrome.i18n.getMessage(id);
-    if (msg) return msg;
-  } catch { /* ignore */ }
-  // 3) fallback
-  return fallback;
-}
+// i18n moved to lib/i18n
 
 function applyStaticI18n() {
   const map = [
@@ -388,7 +355,7 @@ async function init() {
   // Initialize locale
   const { [LOCALE_KEY]: savedLocale } = await chrome.storage.local.get(LOCALE_KEY);
   let locale = savedLocale || 'ja';
-  await loadLocaleMessages(locale);
+  await loadDict(locale);
   applyStaticI18n();
 
   if (!isExtension && rules.length === 0) {
@@ -556,7 +523,7 @@ async function init() {
   applyLocale(locale);
   langBtn.addEventListener('click', async () => {
     locale = locale === 'ja' ? 'en' : 'ja';
-  await loadLocaleMessages(locale);
+  await loadDict(locale);
     applyLocale(locale);
     await chrome.storage.local.set({ [LOCALE_KEY]: locale });
   // Re-apply static labels and rerender rules for dynamic labels
