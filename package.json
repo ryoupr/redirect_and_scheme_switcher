@@ -6,9 +6,7 @@
   "scripts": {
     "gen:icons": "node scripts/gen-icons.mjs"
   },
-  "devDependencies": {
-    "sharp": "^0.33.4"
-  },
+  "devDependencies": {},
   "license": "MIT",
   "repository": {
     "type": "git",

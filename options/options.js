@@ -1,3 +1,6 @@
+import { generateId } from './lib/uuid.js';
+import { toast, showError } from './lib/notify.js';
+
 // Options page logic for managing regex redirect rules.
 const STORAGE_KEY = 'redirectRulesV1';
 const THEME_KEY = 'uiThemeV1';
@@ -68,10 +71,6 @@ if (typeof window !== 'undefined' && typeof window.chrome === 'undefined') {
     },
     storage: { local: { async get() { return {}; }, async set() { return {}; } } }
   };
-}
-
-function uuid() {
-  return 'r_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 async function loadRules() {
@@ -272,7 +271,7 @@ function renderRules(rules) {
     const actions = document.createElement('div');
     actions.className = 'rule-actions';
   const dup = button(i18n('rule_duplicate', '複製'), async () => {
-      const copy = { ...r, id: uuid() };
+      const copy = { ...r, id: generateId() };
       rules.splice(index + 1, 0, copy);
       await saveRules(rules);
       renderRules(rules);
@@ -395,8 +394,8 @@ async function init() {
   if (!isExtension && rules.length === 0) {
     // Seed demo rules for screenshots
     rules = [
-      { id: uuid(), enabled: true, description: 'https → http（サンプル）', mode: 'scheme', match: '^https://', schemeTarget: 'http' },
-      { id: uuid(), enabled: true, description: 'example → new.example', mode: 'redirect', match: '^https://example\\.com/(.*)$', target: 'https://new.example.com/$1' }
+      { id: generateId(), enabled: true, description: 'https → http（サンプル）', mode: 'scheme', match: '^https://', schemeTarget: 'http' },
+      { id: generateId(), enabled: true, description: 'example → new.example', mode: 'redirect', match: '^https://example\\.com/(.*)$', target: 'https://new.example.com/$1' }
     ];
     await saveRules(rules);
   }
@@ -426,7 +425,7 @@ async function init() {
   });
 
   $('#addRule').addEventListener('click', async () => {
-    rules.push({ id: uuid(), enabled: true, match: '', rewrite: '', target: '' });
+    rules.push({ id: generateId(), enabled: true, match: '', rewrite: '', target: '' });
     await saveRules(rules);
     renderRules(rules);
   });
@@ -480,7 +479,7 @@ async function init() {
       renderRules(rules);
       toast(i18n('toast_restored', '復元しました'));
     } catch (err) {
-      alert(i18n('toast_error', 'エラーが発生しました') + ': ' + err.message);
+      showError(i18n('toast_error', 'エラーが発生しました') + ': ' + err.message);
     } finally {
       e.target.value = '';
     }
@@ -515,7 +514,7 @@ async function init() {
         renderRules(rules);
       }
     } catch (err) {
-      alert(i18n('json_load_failed', 'JSONの読み込みに失敗しました') + ': ' + err);
+      showError(i18n('json_load_failed', 'JSONの読み込みに失敗しました') + ': ' + err);
     } finally {
       e.target.value = '';
     }
@@ -543,7 +542,7 @@ async function init() {
       const text = await navigator.clipboard.readText();
       $('#testUrl').value = text;
     } catch {
-      alert(i18n('clipboard_read_failed', 'クリップボードの読み取りに失敗しました'));
+      showError(i18n('clipboard_read_failed', 'クリップボードの読み取りに失敗しました'));
     }
   });
 
@@ -584,7 +583,7 @@ async function init() {
       renderRules(rules);
       $('#jsonEditor').close();
     } catch (err) {
-      alert('JSONが不正です: ' + err.message);
+      showError('JSONが不正です: ' + err.message);
     }
   });
 
@@ -592,20 +591,3 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
-function toast(msg) {
-  const el = document.createElement('div');
-  el.textContent = msg;
-  el.style.position = 'fixed';
-  el.style.bottom = '16px';
-  el.style.right = '16px';
-  el.style.background = 'var(--card)';
-  el.style.color = 'var(--fg)';
-  el.style.border = '1px solid var(--border)';
-  el.style.padding = '8px 12px';
-  el.style.borderRadius = '6px';
-  el.style.boxShadow = '0 2px 10px var(--shadow)';
-  el.style.zIndex = '2000';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1800);
-}
