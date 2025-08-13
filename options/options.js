@@ -551,7 +551,8 @@ async function init() {
   const langBtn = $('#langToggle');
   const applyLocale = (lc) => {
     document.documentElement.lang = lc;
-    langBtn.textContent = lc === 'ja' ? 'EN' : 'JA';
+  // Show current locale label: EN for English UI, JA for Japanese UI
+  langBtn.textContent = (lc || 'ja').toUpperCase();
   };
   applyLocale(locale);
   langBtn.addEventListener('click', async () => {
