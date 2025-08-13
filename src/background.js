@@ -136,16 +136,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       } else if (msg?.type === 'test-rule') {
         const { url, mode = 'redirect', pattern, replacement, schemeTarget } = msg;
         const re = new RegExp(pattern);
-        if (!re.test(url)) {
-          sendResponse({ ok: true, result: url });
+        const matched = re.test(url);
+        if (!matched) {
+          sendResponse({ ok: true, result: url, matched: false });
           return;
         }
         if (mode === 'scheme') {
           const out = transformScheme(url, schemeTarget || 'https');
-          sendResponse({ ok: true, result: out });
+          sendResponse({ ok: true, result: out, matched: true });
         } else {
           const out = url.replace(re, replacement ?? '');
-          sendResponse({ ok: true, result: out });
+          sendResponse({ ok: true, result: out, matched: true });
         }
       } else {
         sendResponse({ ok: false, error: 'Unknown message type' });

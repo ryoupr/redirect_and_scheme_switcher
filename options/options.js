@@ -95,7 +95,11 @@ function renderRules(rules) {
       r.match = match.value;
       await saveRules(rules);
     }, 300));
-    matchWrap.append(matchLab, match);
+  matchWrap.append(matchLab, match);
+  const matchHint = document.createElement('small');
+  matchHint.className = 'mono';
+  matchHint.textContent = "ヒント: 特殊文字はエスケープが必要です（例: '?' は \\?、'.' は \\.）";
+  matchWrap.append(matchHint);
 
     // Right side: either rewrite input (redirect) or scheme controls (scheme)
     let rightWrap;
@@ -169,7 +173,7 @@ function renderRules(rules) {
     const urlInput = document.createElement('input');
     urlInput.type = 'text';
     urlInput.placeholder = 'テスト用URLを貼り付け';
-    const testOut = document.createElement('output');
+  const testOut = document.createElement('output');
     const run = button('テスト', async () => {
       const url = urlInput.value;
       try {
@@ -182,7 +186,12 @@ function renderRules(rules) {
           schemeTarget: (r.mode || 'redirect') === 'scheme' ? (r.schemeTarget || 'https') : undefined
         };
         const res = await chrome.runtime.sendMessage(payload);
-        testOut.textContent = res?.ok ? res.result : ('エラー: ' + (res?.error || ''));
+        if (!res?.ok) {
+          testOut.textContent = 'エラー: ' + (res?.error || 'unknown');
+        } else {
+          const note = res.matched ? '' : '（未マッチ） ';
+          testOut.textContent = note + res.result;
+        }
       } catch (e) {
         testOut.textContent = 'エラー: ' + e;
       }
