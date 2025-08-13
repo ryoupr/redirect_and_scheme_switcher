@@ -4,11 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "gen:icons": "node scripts/gen-icons.mjs"
+    "gen:icons": "echo 'Icon generation script removed. Use an external tool to export PNGs from icons/icon.svg.'"
   },
-  "devDependencies": {
-    "sharp": "^0.33.4"
-  },
+  "devDependencies": {},
   "license": "MIT",
   "repository": {
     "type": "git",

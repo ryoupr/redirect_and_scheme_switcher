@@ -49,6 +49,8 @@
   "rule_test_input_placeholder": { "message": "Test with this rule" },
   "not_matched": { "message": "No match" },
   "regex_hint": { "message": "RE2-compatible. Escape \\., \\?, etc." },
+  "regex_invalid": { "message": "Invalid regular expression" },
+  "scheme_clear_note": { "message": "(remove only the leading scheme)" },
 
   "toast_saved": { "message": "Saved" },
   "toast_restored": { "message": "Restored" },

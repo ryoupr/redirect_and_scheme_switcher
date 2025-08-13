@@ -47,6 +47,8 @@
   "rule_test_input_placeholder": { "message": "このルールでテスト" },
   "not_matched": { "message": "未マッチ" },
   "regex_hint": { "message": "RE2互換。\\. や \\? はエスケープが必要です。" },
+  "regex_invalid": { "message": "正規表現が不正です" },
+  "scheme_clear_note": { "message": "（先頭スキームのみ削除）" },
 
   "toast_saved": { "message": "保存しました" },
   "toast_restored": { "message": "復元しました" },

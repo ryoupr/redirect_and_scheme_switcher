@@ -190,6 +190,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // perform the redirect via tabs.update/create because DNR can't redirect to non-http.
 let nonHttpRulesCache = [];
 let schemeRulesCache = [];
+// Track tabs we intentionally redirect to avoid loops; clear deterministically on commit
 const redirectingTabs = new Set();
 
 async function refreshNonHttpRules() {
@@ -231,7 +232,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
           if (chrome.runtime.lastError) {
             chrome.tabs.create({ url: target, index: details.tabId + 1 });
           }
-          setTimeout(() => redirectingTabs.delete(details.tabId), 1500);
         });
         return;
       }
@@ -252,7 +252,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
             if (chrome.runtime.lastError) {
               chrome.tabs.create({ url: target, index: details.tabId + 1 });
             }
-            setTimeout(() => redirectingTabs.delete(details.tabId), 1500);
           });
           return;
         }
@@ -262,6 +261,12 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     // swallow
   }
 }, { url: [{ schemes: ['http', 'https'] }] });
+
+// Clear redirect flags when navigation is committed in the main frame
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId !== 0) return;
+  redirectingTabs.delete(details.tabId);
+});
 
 function transformScheme(inputUrl, schemeTarget) {
   // Clear: remove only the first scheme prefix like 'https://'

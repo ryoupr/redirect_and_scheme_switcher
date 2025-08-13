@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title id="pageTitle">Redirect & Scheme Switcher</title>
+  <title id="pageTitle" data-i18n="options_title">Redirect & Scheme Switcher</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -12,23 +12,23 @@
     </button>
     <main>
       <header>
-        <h1 id="titleText">Redirect & Scheme Switcher</h1>
-        <p id="taglineText">
+        <h1 id="titleText" data-i18n="options_title">Redirect & Scheme Switcher</h1>
+        <p id="taglineText" data-i18n="options_tagline">
           リダイレクトとスキーム変換を1つに。正規表現で柔軟制御。GUI/JSON対応。
         </p>
       </header>
 
       <section class="toolbar">
-        <button id="addRule">ルール追加</button>
-        <button id="enableAll">すべてON</button>
-        <button id="disableAll">すべてOFF</button>
-        <button id="importJson">インポート</button>
-        <button id="exportJson">エクスポート</button>
-        <button id="backupRules">バックアップ</button>
-        <button id="restoreRules">復元</button>
-        <button id="saveBackupFile">バックアップをファイル保存</button>
-        <button id="loadBackupFile">ファイルから復元</button>
-        <button id="editJson">JSONを直接編集</button>
+  <button id="addRule" data-i18n="btn_add_rule" aria-label="Add Rule">ルール追加</button>
+  <button id="enableAll" data-i18n="btn_enable_all" aria-label="Enable All">すべてON</button>
+  <button id="disableAll" data-i18n="btn_disable_all" aria-label="Disable All">すべてOFF</button>
+  <button id="importJson" data-i18n="btn_import" aria-label="Import">インポート</button>
+  <button id="exportJson" data-i18n="btn_export" aria-label="Export">エクスポート</button>
+  <button id="backupRules" data-i18n="btn_backup" aria-label="Save Backup">バックアップ</button>
+  <button id="restoreRules" data-i18n="btn_restore" aria-label="Restore Backup">復元</button>
+  <button id="saveBackupFile" data-i18n="btn_backup" aria-label="Save Backup to File">バックアップをファイル保存</button>
+  <button id="loadBackupFile" data-i18n="btn_restore" aria-label="Load Backup from File">ファイルから復元</button>
+  <button id="editJson" data-i18n="btn_open_json_editor" aria-label="Open JSON Editor">JSONを直接編集</button>
         <label class="file-input">
           <input type="file" id="filePicker" accept="application/json" hidden />
         </label>
@@ -50,21 +50,21 @@
       </section>
 
       <section class="tester">
-        <h2 id="testerTitle">テスト</h2>
+  <h2 id="testerTitle" data-i18n="tester_title">テスト</h2>
         <div class="grid">
           <label>
-            <span id="labelUrl">URL</span>
+            <span id="labelUrl" data-i18n="tester_label">URL</span>
             <div class="paste-row">
               <input
                 id="testUrl"
                 type="text"
                 placeholder="https://example.com/path?q=1"
               />
-              <button id="pasteGlobal" type="button">貼り付け</button>
+              <button id="pasteGlobal" type="button" data-i18n="btn_paste" aria-label="Paste from clipboard">貼り付け</button>
             </div>
           </label>
           <label>
-            <span id="labelPattern">正規表現</span>
+            <span id="labelPattern" data-i18n="rule_pattern">正規表現</span>
             <input
               id="testPattern"
               type="text"
@@ -72,7 +72,7 @@
             />
           </label>
           <label>
-            <span id="labelReplacement">置換</span>
+            <span id="labelReplacement" data-i18n="rule_target">置換</span>
             <input
               id="testReplacement"
               type="text"
@@ -80,26 +80,22 @@
             />
           </label>
         </div>
-        <button id="runTest">変換</button>
+  <button id="runTest" data-i18n="btn_test" aria-label="Run Test">変換</button>
         <output id="testResult"></output>
       </section>
 
       <section class="notes">
-        <h3 id="notesTitle">使い方のメモ</h3>
+  <h3 id="notesTitle" data-i18n="notes_title">使い方のメモ</h3>
         <ul>
-          <li id="noteRe2">
-            正規表現はRE2互換で一部の高度な機能は使えません。
-          </li>
-          <li id="noteBackref">置換では$1, $2などの後方参照が使えます。</li>
-          <li id="notePriority">
-            複数のルールがマッチした場合、上にあるルールが優先されます。
-          </li>
+          <li id="noteRe2" data-i18n="note_re2">正規表現はRE2互換で一部の高度な機能は使えません。</li>
+          <li id="noteBackref" data-i18n="note_backref">置換では$1, $2などの後方参照が使えます。</li>
+          <li id="notePriority" data-i18n="note_priority">複数のルールがマッチした場合、上にあるルールが優先されます。</li>
         </ul>
       </section>
 
       <dialog id="jsonEditor">
         <form method="dialog">
-          <h3 id="jsonEditorTitle">JSON編集</h3>
+          <h3 id="jsonEditorTitle" data-i18n="json_editor_title">JSON編集</h3>
           <p>
             <small class="mono"
               >[{ id, enabled, description, match, rewrite, target }]</small
@@ -115,8 +111,8 @@
             "
           ></textarea>
           <menu>
-            <button id="jsonCancel" value="cancel">キャンセル</button>
-            <button id="saveJson" value="default">保存</button>
+            <button id="jsonCancel" value="cancel" data-i18n="json_editor_cancel" aria-label="Cancel">キャンセル</button>
+            <button id="saveJson" value="default" data-i18n="json_editor_save" aria-label="Save">保存</button>
           </menu>
         </form>
       </dialog>

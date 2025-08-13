@@ -1,4 +1,8 @@
-// Options page logic for managing regex redirect rules.
+// Options page logic for managing regex redirect rules (module scope only).
+import { createRuleCard } from './components/ruleCard.js';
+import { initToolbar } from './components/toolbar.js';
+import { initTester } from './components/tester.js';
+import { applyI18nAttributes } from './utils/i18n.js';
 const STORAGE_KEY = 'redirectRulesV1';
 const THEME_KEY = 'uiThemeV1';
 const LOCALE_KEY = 'uiLocaleV1';
@@ -70,8 +74,28 @@ if (typeof window !== 'undefined' && typeof window.chrome === 'undefined') {
   };
 }
 
+// RFC4122 v4 UUID (prefer native, fallback to crypto-based polyfill)
 function uuid() {
-  return 'r_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    // Per RFC4122 v4
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map(b => b.toString(16).padStart(2, '0'));
+    return (
+      hex.slice(0, 4).join('') + '-' +
+      hex.slice(4, 6).join('') + '-' +
+      hex.slice(6, 8).join('') + '-' +
+      hex.slice(8, 10).join('') + '-' +
+      hex.slice(10, 16).join('')
+    );
+  }
+  // Last resort (very unlikely path)
+  return 'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
 }
 
 async function loadRules() {
@@ -87,210 +111,23 @@ async function saveRules(rules) {
 function renderRules(rules) {
   const list = $('#rulesList');
   list.innerHTML = '';
+  const sendMessage = (payload) => chrome.runtime.sendMessage(payload);
   rules.forEach((r, index) => {
-    const card = document.createElement('div');
-    card.className = 'rule-card';
-    card.draggable = true;
-    card.dataset.index = String(index);
-
-    // Drag handle
-  const drag = document.createElement('div');
-  drag.className = 'drag';
-  drag.title = i18n('drag_to_reorder', 'ドラッグで並べ替え');
-    drag.textContent = '⋮⋮';
-
-    // Main inputs
-    const main = document.createElement('div');
-    main.className = 'rule-main';
-
-  const rowTop = document.createElement('div');
-  rowTop.className = 'row';
-    const onWrap = document.createElement('label');
-    onWrap.className = 'switch';
-    const on = document.createElement('input');
-    on.type = 'checkbox';
-    on.checked = !!r.enabled;
-    on.addEventListener('change', debounce(async () => {
-      r.enabled = on.checked;
-      await saveRules(rules);
-    }, 50));
-    const onTxt = document.createElement('span');
-  onTxt.textContent = i18n('rule_on', 'ON');
-    onWrap.append(on, onTxt);
-
-  const descWrap = document.createElement('label');
-    const descLab = document.createElement('span');
-  descLab.textContent = i18n('rule_description', '説明');
-  const desc = document.createElement('input');
-    desc.type = 'text';
-    desc.placeholder = '説明 (任意)';
-    desc.value = r.description || '';
-    desc.addEventListener('input', debounce(async () => {
-      r.description = desc.value;
-      await saveRules(rules);
-    }, 300));
-    descWrap.append(descLab, desc);
-    // Mode selector
-    const modeWrap = document.createElement('label');
-    const modeLab = document.createElement('span');
-  modeLab.textContent = i18n('rule_mode', 'モード');
-    const modeSel = document.createElement('select');
-  const optRedirect = new Option(i18n('mode_redirect', 'リダイレクト'), 'redirect');
-  const optScheme = new Option(i18n('mode_scheme', 'スキーム変換'), 'scheme');
-    modeSel.append(optRedirect, optScheme);
-    modeSel.value = r.mode || 'redirect';
-    modeSel.addEventListener('change', async () => {
-      r.mode = modeSel.value;
-      await saveRules(rules);
-      renderRules(rules);
+    const card = createRuleCard({
+      rule: r,
+      index,
+      rules,
+      saveRules,
+      i18n,
+      validateRegex,
+      sendMessage,
+      uuid
     });
-    modeWrap.append(modeLab, modeSel);
-
-    rowTop.append(onWrap, descWrap);
-
-    const rowMid = document.createElement('div');
-    rowMid.className = 'row';
-    const matchWrap = document.createElement('label');
-    const matchLab = document.createElement('span');
-  matchLab.textContent = i18n('rule_pattern', '正規表現（マッチ）');
-    const match = document.createElement('input');
-    match.type = 'text';
-    match.placeholder = '^https://example\\.com/(.*)$';
-    match.value = r.match || '';
-    match.addEventListener('input', debounce(async () => {
-      r.match = match.value;
-      await saveRules(rules);
-    }, 300));
-  matchWrap.append(matchLab, match);
-  const matchHint = document.createElement('small');
-  matchHint.className = 'mono';
-  matchHint.textContent = i18n('regex_hint', "ヒント: 特殊文字はエスケープが必要です（例: '?' は \\?、'.' は \\.）");
-  matchWrap.append(matchHint);
-
-    // Right side: either rewrite input (redirect) or scheme controls (scheme)
-    let rightWrap;
-    if ((r.mode || 'redirect') === 'scheme') {
-      rightWrap = document.createElement('div');
-      const schemeWrap = document.createElement('label');
-  const schemeLab = document.createElement('span');
-  schemeLab.textContent = i18n('rule_scheme_target', 'スキーム');
-      const schemeSel = document.createElement('select');
-      const schemes = [
-        ['https', 'https'],
-        ['http', 'http'],
-        ['obsidian', 'obsidian'],
-        ['vscode', 'vscode'],
-        ['slack', 'slack'],
-        ['clear', i18n('scheme_clear', 'クリア') + '（先頭スキームのみ削除）'],
-        ['custom', i18n('scheme_custom', 'カスタム')]
-      ];
-      schemes.forEach(([val, label]) => schemeSel.append(new Option(label, val)));
-      const current = r.schemeTarget || 'https';
-      schemeSel.value = schemes.some(([v]) => v === current) ? current : 'custom';
-
-      const customInput = document.createElement('input');
-      customInput.type = 'text';
-  customInput.placeholder = i18n('scheme_custom', 'カスタム') + ' (e.g. myapp)';
-      customInput.value = !schemes.some(([v]) => v === current) ? (r.schemeTarget || '') : '';
-      customInput.style.display = schemeSel.value === 'custom' ? 'block' : 'none';
-
-      schemeSel.addEventListener('change', debounce(async () => {
-        if (schemeSel.value === 'custom') {
-          customInput.style.display = 'block';
-          r.schemeTarget = customInput.value || '';
-        } else {
-          customInput.style.display = 'none';
-          r.schemeTarget = schemeSel.value; // 'https' | 'http' | 'obsidian' | 'vscode' | 'slack' | 'clear'
-        }
-        await saveRules(rules);
-      }, 50));
-
-      customInput.addEventListener('input', debounce(async () => {
-        if (schemeSel.value === 'custom') {
-          r.schemeTarget = customInput.value || '';
-          await saveRules(rules);
-        }
-      }, 300));
-
-      schemeWrap.append(schemeLab, schemeSel);
-      rightWrap.append(schemeWrap);
-      rightWrap.append(customInput);
-    } else {
-      const rewriteWrap = document.createElement('label');
-  const rewriteLab = document.createElement('span');
-  rewriteLab.textContent = i18n('rule_target', '置換');
-      const rewrite = document.createElement('input');
-      rewrite.type = 'text';
-  rewrite.placeholder = 'https://new.example.com/$1';
-      rewrite.value = r.target && r.target.length > 0 ? r.target : (r.rewrite || '');
-      rewrite.addEventListener('input', debounce(async () => {
-        r.target = rewrite.value; // regexSubstitution
-        await saveRules(rules);
-      }, 300));
-      rewriteWrap.append(rewriteLab, rewrite);
-      rightWrap = rewriteWrap;
-    }
-
-    rowMid.append(matchWrap, rightWrap);
-
-    // Inline tester
-    const rowTest = document.createElement('div');
-    rowTest.className = 'inline-test';
-    const urlInput = document.createElement('input');
-    urlInput.type = 'text';
-    urlInput.placeholder = 'テスト用URLを貼り付け';
-  const testOut = document.createElement('output');
-  const run = button(i18n('btn_test', 'テスト'), async () => {
-      const url = urlInput.value;
-      try {
-        const payload = {
-          type: 'test-rule',
-          url,
-          mode: r.mode || 'redirect',
-          pattern: match.value,
-          replacement: (r.mode || 'redirect') === 'scheme' ? '' : (r.target && r.target.length > 0 ? r.target : (r.rewrite || '')),
-          schemeTarget: (r.mode || 'redirect') === 'scheme' ? (r.schemeTarget || 'https') : undefined
-        };
-        const res = await chrome.runtime.sendMessage(payload);
-        if (!res?.ok) {
-          testOut.textContent = 'エラー: ' + (res?.error || 'unknown');
-        } else {
-          const note = res.matched ? '' : '（' + i18n('not_matched', '未マッチ') + '） ';
-          testOut.textContent = note + res.result;
-        }
-      } catch (e) {
-        testOut.textContent = 'エラー: ' + e;
-      }
-    });
-    rowTest.append(urlInput, run);
-    const rowTest2 = document.createElement('div');
-    rowTest2.append(testOut);
-
-  main.append(rowTop, modeWrap, rowMid, rowTest, rowTest2);
-
-    // Actions
-    const actions = document.createElement('div');
-    actions.className = 'rule-actions';
-  const dup = button(i18n('rule_duplicate', '複製'), async () => {
-      const copy = { ...r, id: uuid() };
-      rules.splice(index + 1, 0, copy);
-      await saveRules(rules);
-      renderRules(rules);
-    });
-  const del = button(i18n('rule_delete', '削除'), async () => {
-      const i = rules.indexOf(r);
-      if (i >= 0) {
-        rules.splice(i, 1);
-        await saveRules(rules);
-        renderRules(rules);
-      }
-    });
-    del.classList.add('danger');
-    actions.append(dup, del);
-
-    card.append(drag, main, actions);
     list.append(card);
   });
+
+  // Re-render on component event (duplicate/delete/mode change)
+  list.addEventListener('rules:changed', () => renderRules(rules), { once: true });
 
   // Drag & drop ordering
   let dragIndex = null;
@@ -343,19 +180,30 @@ function i18n(id, fallback) {
   return fallback;
 }
 
+function validateRegex(pattern) {
+  if (!pattern) return null;
+  try {
+    // Validation only; RE2差異は実行時メモに譲る
+    new RegExp(pattern);
+    return null;
+  } catch (e) {
+    return String(e.message || e);
+  }
+}
+
 function applyStaticI18n() {
   const map = [
     ['pageTitle', 'options_title'],
     ['titleText', 'options_title'],
     ['taglineText', 'options_tagline'],
-  ['testerTitle', 'tester_title'],
+    ['testerTitle', 'tester_title'],
     ['labelUrl', 'tester_label'],
     ['labelPattern', 'rule_pattern'],
     ['labelReplacement', 'rule_target'],
-  ['notesTitle', 'notes_title'],
-  ['noteRe2', 'note_re2'],
-  ['noteBackref', 'note_backref'],
-  ['notePriority', 'note_priority'],
+    ['notesTitle', 'notes_title'],
+    ['noteRe2', 'note_re2'],
+    ['noteBackref', 'note_backref'],
+    ['notePriority', 'note_priority'],
     ['jsonEditorTitle', 'json_editor_title']
   ];
   for (const [elId, msgId] of map) {
@@ -375,9 +223,9 @@ function applyStaticI18n() {
     ['loadBackupFile', 'btn_restore'],
     ['editJson', 'btn_open_json_editor']
   ];
-  tb.forEach(([id, msg]) => { const el = document.getElementById(id); if (el) el.textContent = i18n(msg, el.textContent); });
-  const paste = document.getElementById('pasteGlobal'); if (paste) paste.textContent = i18n('btn_paste', paste.textContent);
-  const run = document.getElementById('runTest'); if (run) run.textContent = i18n('btn_test', run.textContent);
+  tb.forEach(([id, msg]) => { const el = document.getElementById(id); if (el) { el.textContent = i18n(msg, el.textContent); el.setAttribute('aria-label', i18n(msg, el.getAttribute('aria-label'))); } });
+  const paste = document.getElementById('pasteGlobal'); if (paste) { paste.textContent = i18n('btn_paste', paste.textContent); paste.setAttribute('aria-label', i18n('btn_paste', paste.getAttribute('aria-label'))); }
+  const run = document.getElementById('runTest'); if (run) { run.textContent = i18n('btn_test', run.textContent); run.setAttribute('aria-label', i18n('btn_test', run.getAttribute('aria-label'))); }
   const jsonCancel = document.getElementById('jsonCancel'); if (jsonCancel) jsonCancel.textContent = i18n('json_editor_cancel', jsonCancel.textContent);
   const jsonSave = document.getElementById('saveJson'); if (jsonSave) jsonSave.textContent = i18n('json_editor_save', jsonSave.textContent);
 }
@@ -391,6 +239,7 @@ async function init() {
   let locale = savedLocale || 'ja';
   await loadLocaleMessages(locale);
   applyStaticI18n();
+  applyI18nAttributes(i18n);
 
   if (!isExtension && rules.length === 0) {
     // Seed demo rules for screenshots
@@ -425,127 +274,23 @@ async function init() {
     }
   });
 
-  $('#addRule').addEventListener('click', async () => {
-    rules.push({ id: uuid(), enabled: true, match: '', rewrite: '', target: '' });
-    await saveRules(rules);
-    renderRules(rules);
+  // Toolbar wiring
+  initToolbar({
+    getRules: () => rules,
+    setRules: (r) => { rules = r; },
+    saveRules,
+    loadRules,
+    renderRules,
+    i18n,
+    toast,
+    showError,
+    uuid,
+    validateRulesArray,
+    sendMessage: (p) => chrome.runtime.sendMessage(p),
   });
 
-  $('#enableAll').addEventListener('click', async () => {
-    rules.forEach(r => r.enabled = true);
-    await saveRules(rules);
-    renderRules(rules);
-  });
-  $('#disableAll').addEventListener('click', async () => {
-    rules.forEach(r => r.enabled = false);
-    await saveRules(rules);
-    renderRules(rules);
-  });
-
-  $('#exportJson').addEventListener('click', async () => {
-    const res = await chrome.runtime.sendMessage({ type: 'export-rules' });
-    if (!res?.ok) return;
-    const blob = new Blob([JSON.stringify(res.rules, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'url-redirecter-rules.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  // Save backup to file
-  $('#saveBackupFile').addEventListener('click', async () => {
-    const blob = new Blob([JSON.stringify(rules, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'url-redirecter-backup.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-  // Load backup from file
-  $('#loadBackupFile').addEventListener('click', () => {
-    $('#backupFilePicker').click();
-  });
-  $('#backupFilePicker').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!Array.isArray(data)) throw new Error('Invalid backup format');
-      await saveRules(data);
-      rules = await loadRules();
-      renderRules(rules);
-      toast(i18n('toast_restored', '復元しました'));
-    } catch (err) {
-      alert(i18n('toast_error', 'エラーが発生しました') + ': ' + err.message);
-    } finally {
-      e.target.value = '';
-    }
-  });
-
-  // One-click backup/restore (local only)
-  $('#backupRules').addEventListener('click', async () => {
-    await chrome.storage.local.set({ [BACKUP_KEY]: rules });
-    toast(i18n('btn_backup', 'バックアップ保存'));
-  });
-  $('#restoreRules').addEventListener('click', async () => {
-    const { [BACKUP_KEY]: backup = null } = await chrome.storage.local.get(BACKUP_KEY);
-    if (!Array.isArray(backup)) { toast(i18n('backup_missing', 'バックアップが見つかりません')); return; }
-    await saveRules(backup);
-    rules = await loadRules();
-    renderRules(rules);
-    toast(i18n('toast_restored', '復元しました'));
-  });
-
-  $('#importJson').addEventListener('click', () => {
-    $('#filePicker').click();
-  });
-  $('#filePicker').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const text = await file.text();
-    try {
-      const data = JSON.parse(text);
-      const res = await chrome.runtime.sendMessage({ type: 'import-rules', rules: data });
-      if (res?.ok) {
-        rules = await loadRules();
-        renderRules(rules);
-      }
-    } catch (err) {
-      alert(i18n('json_load_failed', 'JSONの読み込みに失敗しました') + ': ' + err);
-    } finally {
-      e.target.value = '';
-    }
-  });
-
-  $('#runTest').addEventListener('click', async () => {
-    const url = $('#testUrl').value;
-    const pattern = $('#testPattern').value;
-    const replacement = $('#testReplacement').value;
-    try {
-      const res = await chrome.runtime.sendMessage({ type: 'test-regex', url, pattern, replacement });
-      if (res?.ok) {
-        $('#testResult').textContent = res.result;
-      } else {
-        $('#testResult').textContent = 'エラー: ' + res.error;
-      }
-    } catch (e) {
-      $('#testResult').textContent = 'エラー: ' + e;
-    }
-  });
-
-  // Paste from clipboard to test URL
-  $('#pasteGlobal').addEventListener('click', async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      $('#testUrl').value = text;
-    } catch {
-      alert(i18n('clipboard_read_failed', 'クリップボードの読み取りに失敗しました'));
-    }
-  });
+  // Tester wiring
+  initTester({ i18n, sendMessage: (p) => chrome.runtime.sendMessage(p), toast, showError });
 
   // i18n toggle (basic, title bar only for now)
   const langBtn = $('#langToggle');
@@ -562,6 +307,7 @@ async function init() {
     await chrome.storage.local.set({ [LOCALE_KEY]: locale });
   // Re-apply static labels and rerender rules for dynamic labels
   applyStaticI18n();
+  applyI18nAttributes(i18n);
   // Reload current rules to keep latest and re-render
   rules = await loadRules();
   renderRules(rules);
@@ -578,13 +324,14 @@ async function init() {
     e.preventDefault();
     try {
       const next = JSON.parse($('#jsonText').value);
-      if (!Array.isArray(next)) throw new Error('配列ではありません');
+      const vr = validateRulesArray(next);
+      if (!vr.ok) throw new Error('Invalid rules schema\n' + vr.errors.join('\n'));
       await saveRules(next);
       rules = await loadRules();
       renderRules(rules);
       $('#jsonEditor').close();
     } catch (err) {
-      alert('JSONが不正です: ' + err.message);
+      showError((i18n('json_load_failed') || 'Invalid JSON'), err?.message || String(err));
     }
   });
 
@@ -606,6 +353,68 @@ function toast(msg) {
   el.style.borderRadius = '6px';
   el.style.boxShadow = '0 2px 10px var(--shadow)';
   el.style.zIndex = '2000';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 1800);
+}
+
+// Better error modal with details
+function showError(title, detail) {
+  const dlg = document.createElement('dialog');
+  dlg.style.maxWidth = '560px';
+  dlg.style.border = '1px solid var(--border)';
+  dlg.style.background = 'var(--card)';
+  dlg.style.color = 'var(--fg)';
+  dlg.innerHTML = `
+    <form method="dialog" style="margin:0">
+      <h3 style="margin:0 0 8px">${escapeHtml(title || 'Error')}</h3>
+      <pre style="white-space:pre-wrap;word-wrap:break-word;background:transparent;border:none;margin:0 0 12px">${escapeHtml(detail || '')}</pre>
+      <menu style="display:flex;justify-content:flex-end;gap:8px">
+        <button value="cancel">OK</button>
+      </menu>
+    </form>`;
+  document.body.appendChild(dlg);
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.showModal();
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function validateRulesArray(arr) {
+  const errors = [];
+  if (!Array.isArray(arr)) return { ok: false, errors: ['Rules must be an array'] };
+  arr.forEach((r, idx) => {
+    if (!r || typeof r !== 'object') { errors.push(`#${idx}: Rule must be an object`); return; }
+    if (typeof r.id !== 'string') errors.push(`#${idx}: id must be string`);
+    if (typeof r.match !== 'string') errors.push(`#${idx}: match must be string`);
+    if ('enabled' in r && typeof r.enabled !== 'boolean') errors.push(`#${idx}: enabled must be boolean`);
+    const mode = r.mode || 'redirect';
+    if (mode === 'scheme') {
+      // schemeTarget: string or 'clear'
+      if (typeof r.schemeTarget !== 'string' || r.schemeTarget.length === 0) {
+        errors.push(`#${idx}: schemeTarget is required for scheme mode`);
+      }
+    } else {
+      // redirect mode: require target/rewrite (one of them)
+      const subst = (r.target && r.target.length > 0 ? r.target : (r.rewrite || ''));
+      if (typeof subst !== 'string' || subst.length === 0) {
+        errors.push(`#${idx}: target (or rewrite) is required for redirect mode`);
+      }
+      // Basic URL template check: allow non-http schemes too, but verify it looks like URL-ish ($1 allowed)
+      if (subst && !/^([a-z][a-z0-9+.-]*:)?\/\//i.test(subst) && !/^[a-z][a-z0-9+.-]*:/i.test(subst) && !/\$\d+/.test(subst)) {
+        errors.push(`#${idx}: target should be a URL or contain backrefs like $1`);
+      }
+    }
+    // Regex validation
+    try { new RegExp(r.match); } catch (e) { errors.push(`#${idx}: match invalid regex - ${String(e.message || e)}`); }
+  });
+  return { ok: errors.length === 0, errors };
 }
