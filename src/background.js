@@ -62,6 +62,10 @@ async function rebuildDynamicRules(userRules) {
     const r = userRules[i];
     if (!r?.enabled) continue;
     if (!r?.match) continue;
+    if ((r.mode || 'redirect') === 'scheme') {
+      // Scheme conversion is handled in webNavigation; skip DNR
+      continue;
+    }
     // Validate regex to avoid runtime errors in DNR
     try {
       // This will throw if invalid
@@ -76,6 +80,11 @@ async function rebuildDynamicRules(userRules) {
     const regexFilter = r.match;
     // If target provided, use it directly; else use rewrite
     const regexSubstitution = (r.target && r.target.length > 0 ? r.target : r.rewrite || '').toString();
+
+    // Only add to DNR if substitution looks http(s) to avoid custom-scheme failures
+    if (!/^https?:/i.test(regexSubstitution)) {
+      continue;
+    }
 
     // Build action as redirect using regexSubstitution
     addRules.push({
@@ -124,6 +133,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const re = new RegExp(pattern);
         const result = url.replace(re, replacement ?? '');
         sendResponse({ ok: true, result });
+      } else if (msg?.type === 'test-rule') {
+        const { url, mode = 'redirect', pattern, replacement, schemeTarget } = msg;
+        const re = new RegExp(pattern);
+        if (!re.test(url)) {
+          sendResponse({ ok: true, result: url });
+          return;
+        }
+        if (mode === 'scheme') {
+          const out = transformScheme(url, schemeTarget || 'https');
+          sendResponse({ ok: true, result: out });
+        } else {
+          const out = url.replace(re, replacement ?? '');
+          sendResponse({ ok: true, result: out });
+        }
       } else {
         sendResponse({ ok: false, error: 'Unknown message type' });
       }
@@ -134,3 +157,105 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // return true to indicate async response
   return true;
 });
+
+// ------------------------------
+// Non-HTTP scheme redirect fallback (e.g., obsidian://)
+// We watch http/https navigations and if a regex rule redirects to a custom scheme,
+// perform the redirect via tabs.update/create because DNR can't redirect to non-http.
+let nonHttpRulesCache = [];
+let schemeRulesCache = [];
+const redirectingTabs = new Set();
+
+async function refreshNonHttpRules() {
+  const { [STORAGE_KEY]: rules = [] } = await chrome.storage.sync.get(STORAGE_KEY);
+  const enabled = rules.filter(r => r?.enabled && r?.match);
+  nonHttpRulesCache = enabled
+    .filter(r => (r.mode || 'redirect') === 'redirect')
+    .map(r => ({ match: r.match, target: r.target || r.rewrite || '' }))
+    .filter(r => /^[a-z][a-z0-9+.-]*:/i.test(r.target) && !/^https?:/i.test(r.target));
+
+  schemeRulesCache = enabled
+    .filter(r => (r.mode || 'redirect') === 'scheme')
+    .map(r => ({ match: r.match, schemeTarget: r.schemeTarget || 'https' }));
+}
+
+chrome.runtime.onInstalled.addListener(refreshNonHttpRules);
+chrome.runtime.onStartup?.addListener(refreshNonHttpRules);
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes[STORAGE_KEY]) refreshNonHttpRules();
+});
+
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+  try {
+    if (details.frameId !== 0) return; // main frame only
+    const url = details.url || '';
+    if (!/^https?:/i.test(url)) return;
+    if (redirectingTabs.has(details.tabId)) return;
+
+    // 1) Non-http redirect rules (target is custom scheme)
+    for (const r of nonHttpRulesCache) {
+      let target = null;
+      try {
+        const re = new RegExp(r.match);
+        if (re.test(url)) target = url.replace(re, r.target);
+      } catch { /* ignore invalid regex */ }
+      if (target && target !== url) {
+        redirectingTabs.add(details.tabId);
+        chrome.tabs.update(details.tabId, { url: target }, () => {
+          if (chrome.runtime.lastError) {
+            chrome.tabs.create({ url: target, index: details.tabId + 1 });
+          }
+          setTimeout(() => redirectingTabs.delete(details.tabId), 1500);
+        });
+        return;
+      }
+    }
+
+    // 2) Scheme-conversion rules
+    for (const r of schemeRulesCache) {
+      let match = false;
+      try {
+        const re = new RegExp(r.match);
+        match = re.test(url);
+      } catch { /* ignore invalid regex */ }
+      if (match) {
+        const target = transformScheme(url, r.schemeTarget || 'https');
+        if (target && target !== url) {
+          redirectingTabs.add(details.tabId);
+          chrome.tabs.update(details.tabId, { url: target }, () => {
+            if (chrome.runtime.lastError) {
+              chrome.tabs.create({ url: target, index: details.tabId + 1 });
+            }
+            setTimeout(() => redirectingTabs.delete(details.tabId), 1500);
+          });
+          return;
+        }
+      }
+    }
+  } catch (e) {
+    // swallow
+  }
+}, { url: [{ schemes: ['http', 'https'] }] });
+
+function transformScheme(inputUrl, schemeTarget) {
+  try {
+    const u = new URL(inputUrl);
+    const rest = `${u.host}${u.pathname}${u.search}${u.hash}`;
+    if (!schemeTarget || schemeTarget === 'https' || schemeTarget === 'http' || schemeTarget === 'custom' || /^[a-z][a-z0-9+.-]*$/i.test(schemeTarget)) {
+      if (schemeTarget === 'clear') {
+        // Schemeless URL
+        return `//${rest}`;
+      }
+      const scheme = schemeTarget === 'custom' ? '' : schemeTarget;
+      if (!scheme) return `//${rest}`;
+      return `${scheme}://${rest}`;
+    }
+  } catch {
+    // Fallback regex if URL parsing fails
+  }
+  // Fallback: replace up to '://' at the start
+  if (schemeTarget === 'clear') return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?\/\//i, '//');
+  const scheme = schemeTarget === 'custom' ? '' : schemeTarget;
+  if (!scheme) return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?\/\//i, '//');
+  return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?/i, `${scheme}:`).replace(/^([a-z][a-z0-9+.-]*:)?(?=\/\/)/i, `${scheme}:`);
+}

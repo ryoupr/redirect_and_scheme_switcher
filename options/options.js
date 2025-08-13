@@ -37,8 +37,8 @@ function renderRules(rules) {
     const main = document.createElement('div');
     main.className = 'rule-main';
 
-    const rowTop = document.createElement('div');
-    rowTop.className = 'row';
+  const rowTop = document.createElement('div');
+  rowTop.className = 'row';
     const onWrap = document.createElement('label');
     onWrap.className = 'switch';
     const on = document.createElement('input');
@@ -52,7 +52,7 @@ function renderRules(rules) {
     onTxt.textContent = 'ON';
     onWrap.append(on, onTxt);
 
-    const descWrap = document.createElement('label');
+  const descWrap = document.createElement('label');
     const descLab = document.createElement('span');
     descLab.textContent = '説明';
     const desc = document.createElement('input');
@@ -64,6 +64,22 @@ function renderRules(rules) {
       await saveRules(rules);
     }, 300));
     descWrap.append(descLab, desc);
+    // Mode selector
+    const modeWrap = document.createElement('label');
+    const modeLab = document.createElement('span');
+    modeLab.textContent = '動作';
+    const modeSel = document.createElement('select');
+    const optRedirect = new Option('URLリダイレクト', 'redirect');
+    const optScheme = new Option('スキーム変換', 'scheme');
+    modeSel.append(optRedirect, optScheme);
+    modeSel.value = r.mode || 'redirect';
+    modeSel.addEventListener('change', async () => {
+      r.mode = modeSel.value;
+      await saveRules(rules);
+      renderRules(rules);
+    });
+    modeWrap.append(modeLab, modeSel);
+
     rowTop.append(onWrap, descWrap);
 
     const rowMid = document.createElement('div');
@@ -81,19 +97,71 @@ function renderRules(rules) {
     }, 300));
     matchWrap.append(matchLab, match);
 
-    const rewriteWrap = document.createElement('label');
-    const rewriteLab = document.createElement('span');
-    rewriteLab.textContent = '置換（regexSubstitution）';
-    const rewrite = document.createElement('input');
-    rewrite.type = 'text';
-    rewrite.placeholder = 'https://new.example.com/$1';
-    rewrite.value = r.target && r.target.length > 0 ? r.target : (r.rewrite || '');
-    rewrite.addEventListener('input', debounce(async () => {
-      r.target = rewrite.value; // regexSubstitution
-      await saveRules(rules);
-    }, 300));
-    rewriteWrap.append(rewriteLab, rewrite);
-    rowMid.append(matchWrap, rewriteWrap);
+    // Right side: either rewrite input (redirect) or scheme controls (scheme)
+    let rightWrap;
+    if ((r.mode || 'redirect') === 'scheme') {
+      rightWrap = document.createElement('div');
+      const schemeWrap = document.createElement('label');
+      const schemeLab = document.createElement('span');
+      schemeLab.textContent = '変換後スキーム';
+      const schemeSel = document.createElement('select');
+      const schemes = [
+        ['https', 'https'],
+        ['http', 'http'],
+        ['obsidian', 'obsidian'],
+        ['vscode', 'vscode'],
+        ['slack', 'slack'],
+        ['clear', 'クリア（先頭スキームのみ削除）'],
+        ['custom', 'カスタム']
+      ];
+      schemes.forEach(([val, label]) => schemeSel.append(new Option(label, val)));
+      const current = r.schemeTarget || 'https';
+      schemeSel.value = schemes.some(([v]) => v === current) ? current : 'custom';
+
+      const customInput = document.createElement('input');
+      customInput.type = 'text';
+      customInput.placeholder = 'カスタムスキーム (例: myapp)';
+      customInput.value = !schemes.some(([v]) => v === current) ? (r.schemeTarget || '') : '';
+      customInput.style.display = schemeSel.value === 'custom' ? 'block' : 'none';
+
+      schemeSel.addEventListener('change', debounce(async () => {
+        if (schemeSel.value === 'custom') {
+          customInput.style.display = 'block';
+          r.schemeTarget = customInput.value || '';
+        } else {
+          customInput.style.display = 'none';
+          r.schemeTarget = schemeSel.value; // 'https' | 'http' | 'obsidian' | 'vscode' | 'slack' | 'clear'
+        }
+        await saveRules(rules);
+      }, 50));
+
+      customInput.addEventListener('input', debounce(async () => {
+        if (schemeSel.value === 'custom') {
+          r.schemeTarget = customInput.value || '';
+          await saveRules(rules);
+        }
+      }, 300));
+
+      schemeWrap.append(schemeLab, schemeSel);
+      rightWrap.append(schemeWrap);
+      rightWrap.append(customInput);
+    } else {
+      const rewriteWrap = document.createElement('label');
+      const rewriteLab = document.createElement('span');
+      rewriteLab.textContent = '置換（regexSubstitution）';
+      const rewrite = document.createElement('input');
+      rewrite.type = 'text';
+      rewrite.placeholder = 'https://new.example.com/$1';
+      rewrite.value = r.target && r.target.length > 0 ? r.target : (r.rewrite || '');
+      rewrite.addEventListener('input', debounce(async () => {
+        r.target = rewrite.value; // regexSubstitution
+        await saveRules(rules);
+      }, 300));
+      rewriteWrap.append(rewriteLab, rewrite);
+      rightWrap = rewriteWrap;
+    }
+
+    rowMid.append(matchWrap, rightWrap);
 
     // Inline tester
     const rowTest = document.createElement('div');
@@ -103,11 +171,17 @@ function renderRules(rules) {
     urlInput.placeholder = 'テスト用URLを貼り付け';
     const testOut = document.createElement('output');
     const run = button('テスト', async () => {
-      const pattern = match.value;
-      const replacement = rewrite.value;
       const url = urlInput.value;
       try {
-        const res = await chrome.runtime.sendMessage({ type: 'test-regex', url, pattern, replacement });
+        const payload = {
+          type: 'test-rule',
+          url,
+          mode: r.mode || 'redirect',
+          pattern: match.value,
+          replacement: (r.mode || 'redirect') === 'scheme' ? '' : (r.target && r.target.length > 0 ? r.target : (r.rewrite || '')),
+          schemeTarget: (r.mode || 'redirect') === 'scheme' ? (r.schemeTarget || 'https') : undefined
+        };
+        const res = await chrome.runtime.sendMessage(payload);
         testOut.textContent = res?.ok ? res.result : ('エラー: ' + (res?.error || ''));
       } catch (e) {
         testOut.textContent = 'エラー: ' + e;
@@ -117,7 +191,7 @@ function renderRules(rules) {
     const rowTest2 = document.createElement('div');
     rowTest2.append(testOut);
 
-    main.append(rowTop, rowMid, rowTest, rowTest2);
+  main.append(rowTop, modeWrap, rowMid, rowTest, rowTest2);
 
     // Actions
     const actions = document.createElement('div');
