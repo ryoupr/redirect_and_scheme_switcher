@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>URL Redirecter 設定</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>URL Redirecter</h1>
+        <p>正規表現でURLを置換・リダイレクト。GUIまたはJSONで設定できます。</p>
+      </header>
+
+      <section class="toolbar">
+        <button id="addRule">ルール追加</button>
+        <button id="importJson">インポート</button>
+        <button id="exportJson">エクスポート</button>
+        <button id="editJson">JSONを直接編集</button>
+        <label class="file-input">
+          <input type="file" id="filePicker" accept="application/json" hidden />
+        </label>
+      </section>
+
+      <section>
+        <table class="rules">
+          <thead>
+            <tr>
+              <th>ON</th>
+              <th>説明</th>
+              <th>正規表現（マッチ）</th>
+              <th>置換（regexSubstitution）</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="rulesBody"></tbody>
+        </table>
+      </section>
+
+      <section class="tester">
+        <h2>テスト</h2>
+        <div class="grid">
+          <label>
+            <span>URL</span>
+            <input
+              id="testUrl"
+              type="text"
+              placeholder="https://example.com/path?q=1"
+            />
+          </label>
+          <label>
+            <span>正規表現</span>
+            <input
+              id="testPattern"
+              type="text"
+              placeholder="^https://example\\.com/(.*)$"
+            />
+          </label>
+          <label>
+            <span>置換</span>
+            <input
+              id="testReplacement"
+              type="text"
+              placeholder="https://new.example.com/$1"
+            />
+          </label>
+        </div>
+        <button id="runTest">変換</button>
+        <output id="testResult"></output>
+      </section>
+
+      <section class="notes">
+        <h3>使い方のメモ</h3>
+        <ul>
+          <li>正規表現はRE2互換で一部の高度な機能は使えません。</li>
+          <li>置換では$1, $2などの後方参照が使えます。</li>
+          <li>複数のルールがマッチした場合、上にあるルールが優先されます。</li>
+        </ul>
+      </section>
+
+      <dialog id="jsonEditor">
+        <form method="dialog">
+          <h3>JSON編集</h3>
+          <p>
+            <small class="mono"
+              >[{ id, enabled, description, match, rewrite, target }]</small
+            >
+          </p>
+          <textarea
+            id="jsonText"
+            style="
+              width: 100%;
+              height: 40vh;
+              font-family: ui-monospace, SFMono-Regular, Menlo, Consolas,
+                monospace;
+            "
+          ></textarea>
+          <menu>
+            <button value="cancel">キャンセル</button>
+            <button id="saveJson" value="default">保存</button>
+          </menu>
+        </form>
+      </dialog>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
