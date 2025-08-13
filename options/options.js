@@ -1,9 +1,54 @@
 // Options page logic for managing regex redirect rules.
 const STORAGE_KEY = 'redirectRulesV1';
 const THEME_KEY = 'uiThemeV1';
+const LOCALE_KEY = 'uiLocaleV1';
+const BACKUP_KEY = 'redirectRulesBackupV1';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+// Minimal stub for running options page outside extension (e.g., capture.html)
+if (typeof window !== 'undefined' && typeof window.chrome === 'undefined') {
+  window.__demoRules = window.__demoRules || [];
+  window.chrome = {
+    runtime: {
+      id: undefined,
+      async sendMessage(msg) {
+        if (msg?.type === 'get-rules') return { ok: true, rules: window.__demoRules };
+        if (msg?.type === 'set-rules') { window.__demoRules = Array.isArray(msg.rules) ? msg.rules : []; return { ok: true }; }
+        if (msg?.type === 'export-rules') return { ok: true, rules: window.__demoRules };
+        if (msg?.type === 'import-rules') { window.__demoRules = Array.isArray(msg.rules) ? msg.rules : []; return { ok: true }; }
+        if (msg?.type === 'test-regex') {
+          try { const re = new RegExp(msg.pattern || ''); return { ok: true, result: String(msg.url || '').replace(re, msg.replacement || '') }; }
+          catch (e) { return { ok: false, error: String(e) }; }
+        }
+        if (msg?.type === 'test-rule') {
+          try {
+            const { url = '', mode = 'redirect', pattern = '', replacement = '', schemeTarget = 'https' } = msg;
+            const re = new RegExp(pattern);
+            const matched = re.test(url);
+            let result = url;
+            if (matched) {
+              if (mode === 'scheme') {
+                if (schemeTarget === 'clear') {
+                  result = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+                } else {
+                  const rest = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+                  result = `${schemeTarget}://${rest}`;
+                }
+              } else {
+                result = url.replace(re, replacement || '');
+              }
+            }
+            return { ok: true, result, matched };
+          } catch (e) { return { ok: false, error: String(e) }; }
+        }
+        return { ok: false, error: 'unsupported in demo' };
+      }
+    },
+    storage: { local: { async get() { return {}; }, async set() { return {}; } } }
+  };
+}
 
 function uuid() {
   return 'r_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -29,9 +74,9 @@ function renderRules(rules) {
     card.dataset.index = String(index);
 
     // Drag handle
-    const drag = document.createElement('div');
-    drag.className = 'drag';
-    drag.title = 'ドラッグで並べ替え';
+  const drag = document.createElement('div');
+  drag.className = 'drag';
+  drag.title = i18n('drag_to_reorder', 'ドラッグで並べ替え');
     drag.textContent = '⋮⋮';
 
     // Main inputs
@@ -50,13 +95,13 @@ function renderRules(rules) {
       await saveRules(rules);
     }, 50));
     const onTxt = document.createElement('span');
-    onTxt.textContent = 'ON';
+  onTxt.textContent = i18n('rule_on', 'ON');
     onWrap.append(on, onTxt);
 
   const descWrap = document.createElement('label');
     const descLab = document.createElement('span');
-    descLab.textContent = '説明';
-    const desc = document.createElement('input');
+  descLab.textContent = i18n('rule_description', '説明');
+  const desc = document.createElement('input');
     desc.type = 'text';
     desc.placeholder = '説明 (任意)';
     desc.value = r.description || '';
@@ -68,10 +113,10 @@ function renderRules(rules) {
     // Mode selector
     const modeWrap = document.createElement('label');
     const modeLab = document.createElement('span');
-    modeLab.textContent = '動作';
+  modeLab.textContent = i18n('rule_mode', 'モード');
     const modeSel = document.createElement('select');
-    const optRedirect = new Option('URLリダイレクト', 'redirect');
-    const optScheme = new Option('スキーム変換', 'scheme');
+  const optRedirect = new Option(i18n('mode_redirect', 'リダイレクト'), 'redirect');
+  const optScheme = new Option(i18n('mode_scheme', 'スキーム変換'), 'scheme');
     modeSel.append(optRedirect, optScheme);
     modeSel.value = r.mode || 'redirect';
     modeSel.addEventListener('change', async () => {
@@ -87,7 +132,7 @@ function renderRules(rules) {
     rowMid.className = 'row';
     const matchWrap = document.createElement('label');
     const matchLab = document.createElement('span');
-    matchLab.textContent = '正規表現（マッチ）';
+  matchLab.textContent = i18n('rule_pattern', '正規表現（マッチ）');
     const match = document.createElement('input');
     match.type = 'text';
     match.placeholder = '^https://example\\.com/(.*)$';
@@ -99,7 +144,7 @@ function renderRules(rules) {
   matchWrap.append(matchLab, match);
   const matchHint = document.createElement('small');
   matchHint.className = 'mono';
-  matchHint.textContent = "ヒント: 特殊文字はエスケープが必要です（例: '?' は \\?、'.' は \\.）";
+  matchHint.textContent = i18n('regex_hint', "ヒント: 特殊文字はエスケープが必要です（例: '?' は \\?、'.' は \\.）");
   matchWrap.append(matchHint);
 
     // Right side: either rewrite input (redirect) or scheme controls (scheme)
@@ -107,8 +152,8 @@ function renderRules(rules) {
     if ((r.mode || 'redirect') === 'scheme') {
       rightWrap = document.createElement('div');
       const schemeWrap = document.createElement('label');
-      const schemeLab = document.createElement('span');
-      schemeLab.textContent = '変換後スキーム';
+  const schemeLab = document.createElement('span');
+  schemeLab.textContent = i18n('rule_scheme_target', 'スキーム');
       const schemeSel = document.createElement('select');
       const schemes = [
         ['https', 'https'],
@@ -116,8 +161,8 @@ function renderRules(rules) {
         ['obsidian', 'obsidian'],
         ['vscode', 'vscode'],
         ['slack', 'slack'],
-        ['clear', 'クリア（先頭スキームのみ削除）'],
-        ['custom', 'カスタム']
+        ['clear', i18n('scheme_clear', 'クリア') + '（先頭スキームのみ削除）'],
+        ['custom', i18n('scheme_custom', 'カスタム')]
       ];
       schemes.forEach(([val, label]) => schemeSel.append(new Option(label, val)));
       const current = r.schemeTarget || 'https';
@@ -125,7 +170,7 @@ function renderRules(rules) {
 
       const customInput = document.createElement('input');
       customInput.type = 'text';
-      customInput.placeholder = 'カスタムスキーム (例: myapp)';
+  customInput.placeholder = i18n('scheme_custom', 'カスタム') + ' (e.g. myapp)';
       customInput.value = !schemes.some(([v]) => v === current) ? (r.schemeTarget || '') : '';
       customInput.style.display = schemeSel.value === 'custom' ? 'block' : 'none';
 
@@ -152,11 +197,11 @@ function renderRules(rules) {
       rightWrap.append(customInput);
     } else {
       const rewriteWrap = document.createElement('label');
-      const rewriteLab = document.createElement('span');
-      rewriteLab.textContent = '置換（regexSubstitution）';
+  const rewriteLab = document.createElement('span');
+  rewriteLab.textContent = i18n('rule_target', '置換');
       const rewrite = document.createElement('input');
       rewrite.type = 'text';
-      rewrite.placeholder = 'https://new.example.com/$1';
+  rewrite.placeholder = 'https://new.example.com/$1';
       rewrite.value = r.target && r.target.length > 0 ? r.target : (r.rewrite || '');
       rewrite.addEventListener('input', debounce(async () => {
         r.target = rewrite.value; // regexSubstitution
@@ -175,7 +220,7 @@ function renderRules(rules) {
     urlInput.type = 'text';
     urlInput.placeholder = 'テスト用URLを貼り付け';
   const testOut = document.createElement('output');
-    const run = button('テスト', async () => {
+  const run = button(i18n('btn_test', 'テスト'), async () => {
       const url = urlInput.value;
       try {
         const payload = {
@@ -190,7 +235,7 @@ function renderRules(rules) {
         if (!res?.ok) {
           testOut.textContent = 'エラー: ' + (res?.error || 'unknown');
         } else {
-          const note = res.matched ? '' : '（未マッチ） ';
+          const note = res.matched ? '' : '（' + i18n('not_matched', '未マッチ') + '） ';
           testOut.textContent = note + res.result;
         }
       } catch (e) {
@@ -206,13 +251,13 @@ function renderRules(rules) {
     // Actions
     const actions = document.createElement('div');
     actions.className = 'rule-actions';
-    const dup = button('複製', async () => {
+  const dup = button(i18n('rule_duplicate', '複製'), async () => {
       const copy = { ...r, id: uuid() };
       rules.splice(index + 1, 0, copy);
       await saveRules(rules);
       renderRules(rules);
     });
-    const del = button('削除', async () => {
+  const del = button(i18n('rule_delete', '削除'), async () => {
       const i = rules.indexOf(r);
       if (i >= 0) {
         rules.splice(i, 1);
@@ -265,9 +310,62 @@ function debounce(fn, ms) {
   };
 }
 
+function i18n(id, fallback) {
+  try { return chrome.i18n.getMessage(id) || fallback; } catch { return fallback; }
+}
+
+function applyStaticI18n() {
+  const map = [
+    ['pageTitle', 'options_title'],
+    ['titleText', 'options_title'],
+    ['taglineText', 'options_tagline'],
+  ['testerTitle', 'tester_title'],
+    ['labelUrl', 'tester_label'],
+    ['labelPattern', 'rule_pattern'],
+    ['labelReplacement', 'rule_target'],
+  ['notesTitle', 'notes_title'],
+  ['noteRe2', 'note_re2'],
+  ['noteBackref', 'note_backref'],
+  ['notePriority', 'note_priority'],
+    ['jsonEditorTitle', 'json_editor_title']
+  ];
+  for (const [elId, msgId] of map) {
+    const el = document.getElementById(elId);
+    if (el) el.textContent = i18n(msgId, el.textContent);
+  }
+  // Toolbar buttons
+  const tb = [
+    ['addRule', 'btn_add_rule'],
+    ['enableAll', 'btn_enable_all'],
+    ['disableAll', 'btn_disable_all'],
+    ['importJson', 'btn_import'],
+    ['exportJson', 'btn_export'],
+    ['backupRules', 'btn_backup'],
+    ['restoreRules', 'btn_restore'],
+    ['saveBackupFile', 'btn_backup'],
+    ['loadBackupFile', 'btn_restore'],
+    ['editJson', 'btn_open_json_editor']
+  ];
+  tb.forEach(([id, msg]) => { const el = document.getElementById(id); if (el) el.textContent = i18n(msg, el.textContent); });
+  const paste = document.getElementById('pasteGlobal'); if (paste) paste.textContent = i18n('btn_paste', paste.textContent);
+  const run = document.getElementById('runTest'); if (run) run.textContent = i18n('btn_test', run.textContent);
+  const jsonCancel = document.getElementById('jsonCancel'); if (jsonCancel) jsonCancel.textContent = i18n('json_editor_cancel', jsonCancel.textContent);
+  const jsonSave = document.getElementById('saveJson'); if (jsonSave) jsonSave.textContent = i18n('json_editor_save', jsonSave.textContent);
+}
+
 async function init() {
   let rules = await loadRules();
   if (!Array.isArray(rules)) rules = [];
+  const isExtension = !!(chrome?.runtime?.id);
+  if (!isExtension && rules.length === 0) {
+    // Seed demo rules for screenshots
+    rules = [
+      { id: uuid(), enabled: true, description: 'https → http（サンプル）', mode: 'scheme', match: '^https://', schemeTarget: 'http' },
+      { id: uuid(), enabled: true, description: 'example → new.example', mode: 'redirect', match: '^https://example\\.com/(.*)$', target: 'https://new.example.com/$1' }
+    ];
+    await saveRules(rules);
+  }
+  applyStaticI18n();
 
   // Theme init
   const themeBtn = document.getElementById('themeToggle');
@@ -283,6 +381,14 @@ async function init() {
     const next = current === 'dark' ? 'light' : 'dark';
     applyTheme(next);
     await chrome.storage.local.set({ [THEME_KEY]: next });
+  });
+
+  // For capture.html to toggle theme without accessing storage
+  window.addEventListener('message', (ev) => {
+    if (ev?.data?.type === 'set-theme') {
+      const t = ev.data.theme === 'dark' ? 'dark' : 'light';
+      applyTheme(t);
+    }
   });
 
   $('#addRule').addEventListener('click', async () => {
@@ -314,6 +420,52 @@ async function init() {
     URL.revokeObjectURL(url);
   });
 
+  // Save backup to file
+  $('#saveBackupFile').addEventListener('click', async () => {
+    const blob = new Blob([JSON.stringify(rules, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'url-redirecter-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+  // Load backup from file
+  $('#loadBackupFile').addEventListener('click', () => {
+    $('#backupFilePicker').click();
+  });
+  $('#backupFilePicker').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!Array.isArray(data)) throw new Error('Invalid backup format');
+      await saveRules(data);
+      rules = await loadRules();
+      renderRules(rules);
+      toast(i18n('toast_restored', '復元しました'));
+    } catch (err) {
+      alert(i18n('toast_error', 'エラーが発生しました') + ': ' + err.message);
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  // One-click backup/restore (local only)
+  $('#backupRules').addEventListener('click', async () => {
+    await chrome.storage.local.set({ [BACKUP_KEY]: rules });
+    toast(i18n('btn_backup', 'バックアップ保存'));
+  });
+  $('#restoreRules').addEventListener('click', async () => {
+    const { [BACKUP_KEY]: backup = null } = await chrome.storage.local.get(BACKUP_KEY);
+    if (!Array.isArray(backup)) { toast(i18n('backup_missing', 'バックアップが見つかりません')); return; }
+    await saveRules(backup);
+    rules = await loadRules();
+    renderRules(rules);
+    toast(i18n('toast_restored', '復元しました'));
+  });
+
   $('#importJson').addEventListener('click', () => {
     $('#filePicker').click();
   });
@@ -329,7 +481,7 @@ async function init() {
         renderRules(rules);
       }
     } catch (err) {
-      alert('JSONの読み込みに失敗しました: ' + err);
+      alert(i18n('json_load_failed', 'JSONの読み込みに失敗しました') + ': ' + err);
     } finally {
       e.target.value = '';
     }
@@ -349,6 +501,31 @@ async function init() {
     } catch (e) {
       $('#testResult').textContent = 'エラー: ' + e;
     }
+  });
+
+  // Paste from clipboard to test URL
+  $('#pasteGlobal').addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      $('#testUrl').value = text;
+    } catch {
+      alert(i18n('clipboard_read_failed', 'クリップボードの読み取りに失敗しました'));
+    }
+  });
+
+  // i18n toggle (basic, title bar only for now)
+  const langBtn = $('#langToggle');
+  const { [LOCALE_KEY]: savedLocale } = await chrome.storage.local.get(LOCALE_KEY);
+  let locale = savedLocale || 'ja';
+  const applyLocale = (lc) => {
+    document.documentElement.lang = lc;
+    langBtn.textContent = lc === 'ja' ? 'EN' : 'JA';
+  };
+  applyLocale(locale);
+  langBtn.addEventListener('click', async () => {
+    locale = locale === 'ja' ? 'en' : 'ja';
+    applyLocale(locale);
+    await chrome.storage.local.set({ [LOCALE_KEY]: locale });
   });
 
   // JSON direct editor
@@ -376,3 +553,20 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.position = 'fixed';
+  el.style.bottom = '16px';
+  el.style.right = '16px';
+  el.style.background = 'var(--card)';
+  el.style.color = 'var(--fg)';
+  el.style.border = '1px solid var(--border)';
+  el.style.padding = '8px 12px';
+  el.style.borderRadius = '6px';
+  el.style.boxShadow = '0 2px 10px var(--shadow)';
+  el.style.zIndex = '2000';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}

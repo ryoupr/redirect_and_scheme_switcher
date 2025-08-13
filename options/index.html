@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>URL Redirecter 設定</title>
+    <title id="pageTitle">Redirect & Scheme Switcher</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -12,8 +12,10 @@
     </button>
     <main>
       <header>
-        <h1>URL Redirecter</h1>
-        <p>正規表現でURLを置換・リダイレクト。GUIまたはJSONで設定できます。</p>
+        <h1 id="titleText">Redirect & Scheme Switcher</h1>
+        <p id="taglineText">
+          リダイレクトとスキーム変換を1つに。正規表現で柔軟制御。GUI/JSON対応。
+        </p>
       </header>
 
       <section class="toolbar">
@@ -22,10 +24,25 @@
         <button id="disableAll">すべてOFF</button>
         <button id="importJson">インポート</button>
         <button id="exportJson">エクスポート</button>
+        <button id="backupRules">バックアップ</button>
+        <button id="restoreRules">復元</button>
+        <button id="saveBackupFile">バックアップをファイル保存</button>
+        <button id="loadBackupFile">ファイルから復元</button>
         <button id="editJson">JSONを直接編集</button>
         <label class="file-input">
           <input type="file" id="filePicker" accept="application/json" hidden />
         </label>
+        <label class="file-input">
+          <input
+            type="file"
+            id="backupFilePicker"
+            accept="application/json"
+            hidden
+          />
+        </label>
+        <button id="langToggle" class="lang-toggle" aria-label="言語切替">
+          EN
+        </button>
       </section>
 
       <section id="rulesSection">
@@ -33,18 +50,21 @@
       </section>
 
       <section class="tester">
-        <h2>テスト</h2>
+        <h2 id="testerTitle">テスト</h2>
         <div class="grid">
           <label>
-            <span>URL</span>
-            <input
-              id="testUrl"
-              type="text"
-              placeholder="https://example.com/path?q=1"
-            />
+            <span id="labelUrl">URL</span>
+            <div class="paste-row">
+              <input
+                id="testUrl"
+                type="text"
+                placeholder="https://example.com/path?q=1"
+              />
+              <button id="pasteGlobal" type="button">貼り付け</button>
+            </div>
           </label>
           <label>
-            <span>正規表現</span>
+            <span id="labelPattern">正規表現</span>
             <input
               id="testPattern"
               type="text"
@@ -52,7 +72,7 @@
             />
           </label>
           <label>
-            <span>置換</span>
+            <span id="labelReplacement">置換</span>
             <input
               id="testReplacement"
               type="text"
@@ -65,17 +85,21 @@
       </section>
 
       <section class="notes">
-        <h3>使い方のメモ</h3>
+        <h3 id="notesTitle">使い方のメモ</h3>
         <ul>
-          <li>正規表現はRE2互換で一部の高度な機能は使えません。</li>
-          <li>置換では$1, $2などの後方参照が使えます。</li>
-          <li>複数のルールがマッチした場合、上にあるルールが優先されます。</li>
+          <li id="noteRe2">
+            正規表現はRE2互換で一部の高度な機能は使えません。
+          </li>
+          <li id="noteBackref">置換では$1, $2などの後方参照が使えます。</li>
+          <li id="notePriority">
+            複数のルールがマッチした場合、上にあるルールが優先されます。
+          </li>
         </ul>
       </section>
 
       <dialog id="jsonEditor">
         <form method="dialog">
-          <h3>JSON編集</h3>
+          <h3 id="jsonEditorTitle">JSON編集</h3>
           <p>
             <small class="mono"
               >[{ id, enabled, description, match, rewrite, target }]</small
@@ -91,7 +115,7 @@
             "
           ></textarea>
           <menu>
-            <button value="cancel">キャンセル</button>
+            <button id="jsonCancel" value="cancel">キャンセル</button>
             <button id="saveJson" value="default">保存</button>
           </menu>
         </form>

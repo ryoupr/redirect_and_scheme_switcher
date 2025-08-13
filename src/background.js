@@ -2,6 +2,8 @@
 // Maintains dynamic redirect rules built from user regex rules saved in storage.
 
 const STORAGE_KEY = 'redirectRulesV1';
+const BACKUP_KEY = 'redirectRulesBackupV1';
+const LOCALE_KEY = 'uiLocaleV1';
 const DNR_RULESET_ID = 'dynamicRegexRedirects';
 
 /**
@@ -19,6 +21,29 @@ const DNR_RULESET_ID = 'dynamicRegexRedirects';
  */
 
 chrome.runtime.onInstalled.addListener(async () => {
+  // Load initial sample rules if none exist
+  const { [STORAGE_KEY]: existing = null } = await chrome.storage.sync.get(STORAGE_KEY);
+  if (!Array.isArray(existing) || existing.length === 0) {
+    const samples = [
+      {
+        id: 'sample_obsidian',
+        enabled: true,
+        description: 'https://open → obsidian://open',
+        mode: 'scheme',
+        match: '^https://open/\\?vault=.*$',
+        schemeTarget: 'obsidian'
+      },
+      {
+        id: 'sample_https_to_http',
+        enabled: false,
+        description: 'https → http (サンプル/無効)',
+        mode: 'scheme',
+        match: '^https://',
+        schemeTarget: 'http'
+      }
+    ];
+    await chrome.storage.sync.set({ [STORAGE_KEY]: samples });
+  }
   await ensureInitialized();
 });
 

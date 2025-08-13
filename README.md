@@ -1,6 +1,6 @@
-# URL Redirecter (Chrome Extension)
+# Redirect & Scheme Switcher (Chrome Extension)
 
-正規表現でURLを自動置換・リダイレクトする Chrome 拡張です。GUI でのルール編集と、JSON のインポート/エクスポートに対応。
+リダイレクトとスキーム変換を1つにした Chrome 拡張です。正規表現で柔軟に制御でき、GUI と JSON のインポート/エクスポートに対応。
 
 ## 機能
 
@@ -11,7 +11,7 @@
 
 ## 仕組み
 
-Manifest V3 の `declarativeNetRequest` の動的ルールを使用します。各ルールは `regexFilter` と `regexSubstitution` を使ったリダイレクトとして適用されます。
+Manifest V3 の `declarativeNetRequest` の動的ルールを使用します。各ルールは `regexFilter` と `regexSubstitution` を使ったリダイレクトとして適用されます。非HTTPスキーム（obsidian:// など）は service worker 側で遷移します。
 
 注意: `regexFilter` は RE2 ベースです。JavaScript の正規表現と完全には一致しないため、先読みなど一部の高度な機能は使えません。
 

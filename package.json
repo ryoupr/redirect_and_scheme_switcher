@@ -1,0 +1,12 @@
+{
+  "name": "redirect-scheme-switcher",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "gen:icons": "node scripts/gen-icons.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.4"
+  }
+}

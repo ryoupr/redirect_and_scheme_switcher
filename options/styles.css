@@ -52,6 +52,8 @@ small.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospa
 
 .tester { margin-top: 24px; }
 .tester .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.paste-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.lang-toggle { margin-left: auto; }
 
 /* Theme toggle button */
 .theme-toggle {

@@ -1,0 +1,41 @@
+# Node
+node_modules/
+.npm-cache/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.vscode-test/
+
+# Build/Artifacts (none by default, keep placeholders for future)
+dist/
+build/
+coverage/
+*.zip
+*.crx
+*.pem
+
+# Generated icons
+icons/icon16.png
+icons/icon32.png
+icons/icon48.png
+icons/icon128.png
+
+# Screenshots and captures
+screenshots/
+options/capture.html
+
+# Local backups/exports (downloaded)
+url-redirecter-*.json
+*.backup.json
+
+# Misc
+*.local
+.env
