@@ -20,6 +20,7 @@
 	--btn-border: #2a2f36;
 	--btn-hover: #222832;
 	--shadow: rgba(0,0,0,0.4);
+	color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -37,7 +38,17 @@ button:hover { background: var(--btn-hover); }
 .drag:active { cursor: grabbing; }
 .rule-main { display: grid; gap: 8px; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.row select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font: inherit; background: #fff; }
+/* Inputs */
+select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; background: var(--bg); color: var(--fg); }
+.row select { width: 100%; }
+select:focus, input[type="text"]:focus, textarea:focus { outline: 2px solid transparent; box-shadow: 0 0 0 2px rgba(100,150,250,0.25); border-color: var(--btn-border); }
+/* Optional: reduce native quirks without killing the arrow */
+/* If the arrow disappears on some platforms, remove the next line */
+select { -webkit-appearance: none; appearance: none; }
+/* Fallback arrow using background-image (color fixed to muted-like tone) */
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23999' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+/* Ensure options pick up dark palette where supported */
+select option { background: var(--card); color: var(--fg); }
 .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 label span { display: inline-block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
 input[type="text"], textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; background: var(--bg); color: var(--fg); }
