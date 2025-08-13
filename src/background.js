@@ -238,14 +238,14 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 }, { url: [{ schemes: ['http', 'https'] }] });
 
 function transformScheme(inputUrl, schemeTarget) {
+  // Clear: remove only the first scheme prefix like 'https://'
+  if (schemeTarget === 'clear') {
+    return inputUrl.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  }
   try {
     const u = new URL(inputUrl);
     const rest = `${u.host}${u.pathname}${u.search}${u.hash}`;
     if (!schemeTarget || schemeTarget === 'https' || schemeTarget === 'http' || schemeTarget === 'custom' || /^[a-z][a-z0-9+.-]*$/i.test(schemeTarget)) {
-      if (schemeTarget === 'clear') {
-    // Remove scheme and // entirely: produce 'host/path?query#hash'
-    return `${rest}`;
-      }
       const scheme = schemeTarget === 'custom' ? '' : schemeTarget;
       if (!scheme) return `//${rest}`;
       return `${scheme}://${rest}`;
@@ -253,9 +253,10 @@ function transformScheme(inputUrl, schemeTarget) {
   } catch {
     // Fallback regex if URL parsing fails
   }
-  // Fallback: replace up to '://' at the start
-  if (schemeTarget === 'clear') return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?\/\//i, '');
+  // Fallback: replace scheme at the start
   const scheme = schemeTarget === 'custom' ? '' : schemeTarget;
-  if (!scheme) return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?\/\//i, '//');
-  return inputUrl.replace(/^([a-z][a-z0-9+.-]*:)?/i, `${scheme}:`).replace(/^([a-z][a-z0-9+.-]*:)?(?=\/\/)/i, `${scheme}:`);
+  if (!scheme) return inputUrl.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '//');
+  return inputUrl
+    .replace(/^[a-z][a-z0-9+.-]*:/i, `${scheme}:`)
+    .replace(/^([a-z][a-z0-9+.-]*:)?(?=\/\/)/i, `${scheme}:`);
 }
