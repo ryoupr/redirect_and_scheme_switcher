@@ -15,6 +15,8 @@
 
       <section class="toolbar">
         <button id="addRule">ルール追加</button>
+        <button id="enableAll">すべてON</button>
+        <button id="disableAll">すべてOFF</button>
         <button id="importJson">インポート</button>
         <button id="exportJson">エクスポート</button>
         <button id="editJson">JSONを直接編集</button>
@@ -23,19 +25,8 @@
         </label>
       </section>
 
-      <section>
-        <table class="rules">
-          <thead>
-            <tr>
-              <th>ON</th>
-              <th>説明</th>
-              <th>正規表現（マッチ）</th>
-              <th>置換（regexSubstitution）</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="rulesBody"></tbody>
-        </table>
+      <section id="rulesSection">
+        <div id="rulesList" class="rules-list" aria-live="polite"></div>
       </section>
 
       <section class="tester">

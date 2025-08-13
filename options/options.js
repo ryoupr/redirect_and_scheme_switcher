@@ -19,22 +19,42 @@ async function saveRules(rules) {
 }
 
 function renderRules(rules) {
-  const tbody = $('#rulesBody');
-  tbody.innerHTML = '';
-  for (const r of rules) {
-    const tr = document.createElement('tr');
+  const list = $('#rulesList');
+  list.innerHTML = '';
+  rules.forEach((r, index) => {
+    const card = document.createElement('div');
+    card.className = 'rule-card';
+    card.draggable = true;
+    card.dataset.index = String(index);
 
-    const tdOn = document.createElement('td');
+    // Drag handle
+    const drag = document.createElement('div');
+    drag.className = 'drag';
+    drag.title = 'ドラッグで並べ替え';
+    drag.textContent = '⋮⋮';
+
+    // Main inputs
+    const main = document.createElement('div');
+    main.className = 'rule-main';
+
+    const rowTop = document.createElement('div');
+    rowTop.className = 'row';
+    const onWrap = document.createElement('label');
+    onWrap.className = 'switch';
     const on = document.createElement('input');
     on.type = 'checkbox';
     on.checked = !!r.enabled;
-    on.addEventListener('change', async () => {
+    on.addEventListener('change', debounce(async () => {
       r.enabled = on.checked;
       await saveRules(rules);
-    });
-    tdOn.append(on);
+    }, 50));
+    const onTxt = document.createElement('span');
+    onTxt.textContent = 'ON';
+    onWrap.append(on, onTxt);
 
-    const tdDesc = document.createElement('td');
+    const descWrap = document.createElement('label');
+    const descLab = document.createElement('span');
+    descLab.textContent = '説明';
     const desc = document.createElement('input');
     desc.type = 'text';
     desc.placeholder = '説明 (任意)';
@@ -43,9 +63,14 @@ function renderRules(rules) {
       r.description = desc.value;
       await saveRules(rules);
     }, 300));
-    tdDesc.append(desc);
+    descWrap.append(descLab, desc);
+    rowTop.append(onWrap, descWrap);
 
-    const tdMatch = document.createElement('td');
+    const rowMid = document.createElement('div');
+    rowMid.className = 'row';
+    const matchWrap = document.createElement('label');
+    const matchLab = document.createElement('span');
+    matchLab.textContent = '正規表現（マッチ）';
     const match = document.createElement('input');
     match.type = 'text';
     match.placeholder = '^https://example\\.com/(.*)$';
@@ -54,37 +79,54 @@ function renderRules(rules) {
       r.match = match.value;
       await saveRules(rules);
     }, 300));
-    tdMatch.append(match);
+    matchWrap.append(matchLab, match);
 
-    const tdRewrite = document.createElement('td');
+    const rewriteWrap = document.createElement('label');
+    const rewriteLab = document.createElement('span');
+    rewriteLab.textContent = '置換（regexSubstitution）';
     const rewrite = document.createElement('input');
     rewrite.type = 'text';
     rewrite.placeholder = 'https://new.example.com/$1';
     rewrite.value = r.target && r.target.length > 0 ? r.target : (r.rewrite || '');
     rewrite.addEventListener('input', debounce(async () => {
-      // Store in target to use as regexSubstitution directly.
-      r.target = rewrite.value;
+      r.target = rewrite.value; // regexSubstitution
       await saveRules(rules);
     }, 300));
-    tdRewrite.append(rewrite);
+    rewriteWrap.append(rewriteLab, rewrite);
+    rowMid.append(matchWrap, rewriteWrap);
 
-    const tdActions = document.createElement('td');
-    tdActions.className = 'actions';
-    const up = button('↑', async () => {
-      const i = rules.indexOf(r);
-      if (i > 0) {
-        rules.splice(i - 1, 0, rules.splice(i, 1)[0]);
-        await saveRules(rules);
-        renderRules(rules);
+    // Inline tester
+    const rowTest = document.createElement('div');
+    rowTest.className = 'inline-test';
+    const urlInput = document.createElement('input');
+    urlInput.type = 'text';
+    urlInput.placeholder = 'テスト用URLを貼り付け';
+    const testOut = document.createElement('output');
+    const run = button('テスト', async () => {
+      const pattern = match.value;
+      const replacement = rewrite.value;
+      const url = urlInput.value;
+      try {
+        const res = await chrome.runtime.sendMessage({ type: 'test-regex', url, pattern, replacement });
+        testOut.textContent = res?.ok ? res.result : ('エラー: ' + (res?.error || ''));
+      } catch (e) {
+        testOut.textContent = 'エラー: ' + e;
       }
     });
-    const down = button('↓', async () => {
-      const i = rules.indexOf(r);
-      if (i < rules.length - 1) {
-        rules.splice(i + 1, 0, rules.splice(i, 1)[0]);
-        await saveRules(rules);
-        renderRules(rules);
-      }
+    rowTest.append(urlInput, run);
+    const rowTest2 = document.createElement('div');
+    rowTest2.append(testOut);
+
+    main.append(rowTop, rowMid, rowTest, rowTest2);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'rule-actions';
+    const dup = button('複製', async () => {
+      const copy = { ...r, id: uuid() };
+      rules.splice(index + 1, 0, copy);
+      await saveRules(rules);
+      renderRules(rules);
     });
     const del = button('削除', async () => {
       const i = rules.indexOf(r);
@@ -94,12 +136,34 @@ function renderRules(rules) {
         renderRules(rules);
       }
     });
+    del.classList.add('danger');
+    actions.append(dup, del);
 
-    tdActions.append(up, down, del);
+    card.append(drag, main, actions);
+    list.append(card);
+  });
 
-    tr.append(tdOn, tdDesc, tdMatch, tdRewrite, tdActions);
-    tbody.append(tr);
-  }
+  // Drag & drop ordering
+  let dragIndex = null;
+  list.querySelectorAll('.rule-card').forEach((card) => {
+    card.addEventListener('dragstart', (e) => {
+      dragIndex = Number(card.dataset.index);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    card.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      const targetIndex = Number(card.dataset.index);
+      if (dragIndex === null || targetIndex === dragIndex) return;
+      const [moved] = rules.splice(dragIndex, 1);
+      rules.splice(targetIndex, 0, moved);
+      await saveRules(rules);
+      renderRules(rules);
+    });
+  });
 }
 
 function button(text, onClick) {
@@ -123,6 +187,17 @@ async function init() {
 
   $('#addRule').addEventListener('click', async () => {
     rules.push({ id: uuid(), enabled: true, match: '', rewrite: '', target: '' });
+    await saveRules(rules);
+    renderRules(rules);
+  });
+
+  $('#enableAll').addEventListener('click', async () => {
+    rules.forEach(r => r.enabled = true);
+    await saveRules(rules);
+    renderRules(rules);
+  });
+  $('#disableAll').addEventListener('click', async () => {
+    rules.forEach(r => r.enabled = false);
     await saveRules(rules);
     renderRules(rules);
   });

@@ -2,14 +2,27 @@
 body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; color: #222; }
 main { max-width: 1000px; margin: 0 auto; padding: 24px; }
 header h1 { margin: 0 0 4px; }
-.toolbar { display: flex; gap: 8px; margin: 12px 0 16px; }
-.rules { width: 100%; border-collapse: collapse; }
-.rules th, .rules td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
-.rules input[type="text"] { width: 100%; }
-.rules .actions { display: flex; gap: 8px; }
-.tester { margin-top: 24px; }
-.tester .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
+button { padding: 8px 12px; cursor: pointer; border: 1px solid #ddd; background: #fff; border-radius: 6px; }
+button:hover { background: #f7f7f7; }
+
+/* Cards */
+.rules-list { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.rule-card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 12px; background: #fff; box-shadow: 0 1px 0 rgba(0,0,0,0.03); display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: start; }
+.drag { cursor: grab; user-select: none; color: #888; }
+.drag:active { cursor: grabbing; }
+.rule-main { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 label span { display: inline-block; font-size: 12px; color: #666; margin-bottom: 4px; }
-button { padding: 8px 12px; cursor: pointer; }
+input[type="text"], textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font: inherit; }
+.rule-actions { display: flex; gap: 8px; align-items: center; }
+.rule-actions .danger { color: #b00020; border-color: #f1c7cc; }
 .switch { display: flex; align-items: center; gap: 6px; }
 small.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #666; }
+
+.inline-test { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.inline-test output { align-self: center; color: #333; font-size: 12px; }
+
+.tester { margin-top: 24px; }
+.tester .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
