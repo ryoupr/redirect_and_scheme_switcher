@@ -3,6 +3,7 @@
   "name": "__MSG_appName__",
   "version": "1.0.1",
   "description": "__MSG_appDesc__",
+  "homepage_url": "https://github.com/ryoupr/url_redirecter",
   "default_locale": "ja",
   "permissions": [
     "declarativeNetRequest",

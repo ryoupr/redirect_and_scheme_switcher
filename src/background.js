@@ -64,6 +64,9 @@ async function initializeAll() {
     console.warn('[initializeAll] 初期化失敗:', e);
     throw e;
   }
+  // 一度だけ古いキーをクリーンアップ（失敗しても無視）
+  cleanupLegacyStorage();
+}
 
 // storage 変更で DNR + キャッシュ更新
 chrome.storage.onChanged.addListener(async (changes, area) => {

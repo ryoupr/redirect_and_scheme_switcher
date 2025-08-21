@@ -4,7 +4,8 @@
   "version": "1.0.1",
   "type": "module",
   "scripts": {
-    "gen:icons": "echo 'Icon generation script removed. Use an external tool to export PNGs from icons/icon.svg.'"
+    "gen:icons": "echo 'Icon generation script removed. Use an external tool to export PNGs from icons/icon.svg.'",
+    "build:zip": "bash scripts/build-zip.sh"
   },
   "devDependencies": {},
   "license": "MIT",
