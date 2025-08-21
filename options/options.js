@@ -6,7 +6,6 @@ import { applyI18nAttributes } from './utils/i18n.js';
 const STORAGE_KEY = 'redirectRulesV1';
 const THEME_KEY = 'uiThemeV1';
 const LOCALE_KEY = 'uiLocaleV1';
-const BACKUP_KEY = 'redirectRulesBackupV1';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -217,10 +216,6 @@ function applyStaticI18n() {
     ['disableAll', 'btn_disable_all'],
     ['importJson', 'btn_import'],
     ['exportJson', 'btn_export'],
-    ['backupRules', 'btn_backup'],
-    ['restoreRules', 'btn_restore'],
-    ['saveBackupFile', 'btn_backup'],
-    ['loadBackupFile', 'btn_restore'],
     ['editJson', 'btn_open_json_editor']
   ];
   tb.forEach(([id, msg]) => { const el = document.getElementById(id); if (el) { el.textContent = i18n(msg, el.textContent); el.setAttribute('aria-label', i18n(msg, el.getAttribute('aria-label'))); } });
