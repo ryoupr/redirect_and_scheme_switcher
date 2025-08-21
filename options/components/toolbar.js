@@ -40,57 +40,6 @@ export function initToolbar(ctx) {
     URL.revokeObjectURL(url);
   });
 
-  $('#saveBackupFile')?.addEventListener('click', async () => {
-    const rules = getRules();
-    const blob = new Blob([JSON.stringify(rules, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'url-redirecter-backup.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  $('#loadBackupFile')?.addEventListener('click', () => {
-    $('#backupFilePicker')?.click();
-  });
-
-  $('#backupFilePicker')?.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      const vr = validateRulesArray(data);
-      if (!vr.ok) throw new Error('Invalid rules schema\n' + vr.errors.join('\n'));
-      await saveRules(data);
-      const rules = await loadRules();
-      setRules(rules);
-      renderRules(rules);
-      toast(i18n('toast_restored'));
-    } catch (err) {
-      showError(i18n('toast_error') || 'Error occurred', err?.message || String(err));
-    } finally {
-      e.target.value = '';
-    }
-  });
-
-  $('#backupRules')?.addEventListener('click', async () => {
-    const rules = getRules();
-    await chrome.storage.local.set({ redirectRulesBackupV1: rules });
-    toast(i18n('btn_backup') || 'Saved backup');
-  });
-
-  $('#restoreRules')?.addEventListener('click', async () => {
-    const { redirectRulesBackupV1: backup = null } = await chrome.storage.local.get('redirectRulesBackupV1');
-    if (!Array.isArray(backup)) { toast(i18n('backup_missing') || 'No backup found'); return; }
-    await saveRules(backup);
-    const rules = await loadRules();
-    setRules(rules);
-    renderRules(rules);
-    toast(i18n('toast_restored') || 'Restored');
-  });
-
   $('#importJson')?.addEventListener('click', () => {
     $('#filePicker')?.click();
   });

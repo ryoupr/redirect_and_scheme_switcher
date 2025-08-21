@@ -2,9 +2,18 @@
 // Maintains dynamic redirect rules built from user regex rules saved in storage.
 
 const STORAGE_KEY = 'redirectRulesV1';
-const BACKUP_KEY = 'redirectRulesBackupV1';
 const LOCALE_KEY = 'uiLocaleV1';
 const DNR_RULESET_ID = 'dynamicRegexRedirects';
+
+// One-time (idempotent) cleanup for legacy storage keys removed from UI
+async function cleanupLegacyStorage() {
+  try {
+    // Old local backup key (no longer used after minimal UI simplification)
+    await chrome.storage.local.remove('redirectRulesBackupV1');
+  } catch (_) {
+    // ignore cleanup errors
+  }
+}
 
 /**
  * User rule shape (stored in chrome.storage.sync):
@@ -21,51 +30,53 @@ const DNR_RULESET_ID = 'dynamicRegexRedirects';
  */
 
 chrome.runtime.onInstalled.addListener(async () => {
-  // Load initial sample rules if none exist
+  // 初回サンプル投入
   const { [STORAGE_KEY]: existing = null } = await chrome.storage.sync.get(STORAGE_KEY);
   if (!Array.isArray(existing) || existing.length === 0) {
     const samples = [
-      {
-        id: 'sample_obsidian',
-        enabled: true,
-        description: 'https://open → obsidian://open',
-        mode: 'scheme',
-        match: '^https://open/\\?vault=.*$',
-        schemeTarget: 'obsidian'
-      },
-      {
-        id: 'sample_https_to_http',
-        enabled: false,
-        description: 'https → http (サンプル/無効)',
-        mode: 'scheme',
-        match: '^https://',
-        schemeTarget: 'http'
-      }
+      { id: 'sample_obsidian', enabled: true, description: 'https://open → obsidian://open', mode: 'scheme', match: '^https://open/\\?vault=.*$', schemeTarget: 'obsidian' },
+      { id: 'sample_https_to_http', enabled: false, description: 'https → http (サンプル/無効)', mode: 'scheme', match: '^https://', schemeTarget: 'http' }
     ];
     await chrome.storage.sync.set({ [STORAGE_KEY]: samples });
   }
-  await ensureInitialized();
+  await initializeAll();
 });
 
-chrome.runtime.onStartup?.addListener(async () => {
-  await ensureInitialized();
-});
+chrome.runtime.onStartup?.addListener(async () => { await initializeAll(); });
 
 // Open options page in a full tab when the action icon is clicked
 chrome.action.onClicked.addListener(() => {
   chrome.runtime.openOptionsPage();
 });
 
-async function ensureInitialized() {
-  const { [STORAGE_KEY]: rules = [] } = await chrome.storage.sync.get(STORAGE_KEY);
-  await rebuildDynamicRules(rules);
-}
 
-// Listen to storage changes to rebuild rules in real time.
+/**
+ * ルールキャッシュと DNR をまとめて初期化
+ */
+async function initializeAll() {
+  try {
+    const { [STORAGE_KEY]: rules = [] } = await chrome.storage.sync.get(STORAGE_KEY);
+    await Promise.all([
+      rebuildDynamicRules(rules),
+      refreshNonHttpRules()
+    ]);
+  } catch (e) {
+    console.warn('[initializeAll] 初期化失敗:', e);
+    throw e;
+  }
+
+// storage 変更で DNR + キャッシュ更新
 chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area !== 'sync' || !changes[STORAGE_KEY]) return;
-  const rules = changes[STORAGE_KEY].newValue || [];
-  await rebuildDynamicRules(rules);
+  try {
+    const rules = changes[STORAGE_KEY].newValue || [];
+    await Promise.all([
+      rebuildDynamicRules(rules),
+      refreshNonHttpRules()
+    ]);
+  } catch (e) {
+    console.warn('[storage.onChanged] 再構築失敗:', e);
+  }
 });
 
 /**
@@ -206,11 +217,7 @@ async function refreshNonHttpRules() {
     .map(r => ({ match: r.match, schemeTarget: r.schemeTarget || 'https' }));
 }
 
-chrome.runtime.onInstalled.addListener(refreshNonHttpRules);
-chrome.runtime.onStartup?.addListener(refreshNonHttpRules);
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes[STORAGE_KEY]) refreshNonHttpRules();
-});
+// 個別 refresh リスナーは initializeAll に統合したので削除
 
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   try {
@@ -291,3 +298,12 @@ function transformScheme(inputUrl, schemeTarget) {
     .replace(/^[a-z][a-z0-9+.-]*:/i, `${scheme}:`)
     .replace(/^([a-z][a-z0-9+.-]*:)?(?=\/\/)/i, `${scheme}:`);
 }
+
+// ----- Eager warm-up -----
+(async () => {
+  try {
+    await initializeAll();
+  } catch (e) {
+    console.error('Failed to initialize extension:', e);
+  }
+})();

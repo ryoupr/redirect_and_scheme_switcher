@@ -1,7 +1,7 @@
 {
   "name": "redirect-scheme-switcher",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "gen:icons": "echo 'Icon generation script removed. Use an external tool to export PNGs from icons/icon.svg.'"
