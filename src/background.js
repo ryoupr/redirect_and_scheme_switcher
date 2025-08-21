@@ -2,9 +2,18 @@
 // Maintains dynamic redirect rules built from user regex rules saved in storage.
 
 const STORAGE_KEY = 'redirectRulesV1';
-const BACKUP_KEY = 'redirectRulesBackupV1';
 const LOCALE_KEY = 'uiLocaleV1';
 const DNR_RULESET_ID = 'dynamicRegexRedirects';
+
+// One-time (idempotent) cleanup for legacy storage keys removed from UI
+async function cleanupLegacyStorage() {
+  try {
+    // Old local backup key (no longer used after minimal UI simplification)
+    await chrome.storage.local.remove('redirectRulesBackupV1');
+  } catch (_) {
+    // ignore cleanup errors
+  }
+}
 
 /**
  * User rule shape (stored in chrome.storage.sync):
@@ -57,6 +66,8 @@ chrome.action.onClicked.addListener(() => {
 });
 
 async function ensureInitialized() {
+  // Perform lightweight migration / cleanup
+  cleanupLegacyStorage(); // fire & forget (no need to await)
   const { [STORAGE_KEY]: rules = [] } = await chrome.storage.sync.get(STORAGE_KEY);
   await rebuildDynamicRules(rules);
 }

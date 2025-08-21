@@ -1,29 +1,64 @@
 {
-  "appName": { "message": "Redirect & Scheme Switcher" },
+  "appName": {
+    "message": "Redirect & Scheme Switcher"
+  },
   "appDesc": {
     "message": "One place for redirects and scheme switching. Regex-powered. GUI and JSON configurable."
   },
-
-  "options_title": { "message": "Redirect & Scheme Switcher" },
-  "options_tagline": { "message": "Redirect / Scheme convert with regex" },
-  "btn_add_rule": { "message": "Add Rule" },
-  "btn_enable_all": { "message": "Enable All" },
-  "btn_disable_all": { "message": "Disable All" },
-  "btn_import": { "message": "Import" },
-  "btn_export": { "message": "Export" },
-  "btn_backup": { "message": "Save Backup" },
-  "btn_restore": { "message": "Restore Backup" },
-  "btn_open_json_editor": { "message": "JSON Editor" },
-  "btn_theme": { "message": "Theme" },
-  "btn_lang": { "message": "Lang" },
-  "tester_label": { "message": "Test URL" },
-  "btn_paste": { "message": "Paste" },
-  "btn_test": { "message": "Test" },
-  "json_editor_title": { "message": "Edit Rules JSON" },
-  "json_editor_save": { "message": "Save" },
-  "json_editor_cancel": { "message": "Cancel" },
-  "tester_title": { "message": "Test" },
-  "notes_title": { "message": "Notes" },
+  "options_title": {
+    "message": "Redirect & Scheme Switcher"
+  },
+  "options_tagline": {
+    "message": "Redirect / Scheme convert with regex"
+  },
+  "btn_add_rule": {
+    "message": "Add Rule"
+  },
+  "btn_enable_all": {
+    "message": "Enable All"
+  },
+  "btn_disable_all": {
+    "message": "Disable All"
+  },
+  "btn_import": {
+    "message": "Import"
+  },
+  "btn_export": {
+    "message": "Export"
+  },
+  "btn_open_json_editor": {
+    "message": "JSON Editor"
+  },
+  "btn_theme": {
+    "message": "Theme"
+  },
+  "btn_lang": {
+    "message": "Lang"
+  },
+  "tester_label": {
+    "message": "Test URL"
+  },
+  "btn_paste": {
+    "message": "Paste"
+  },
+  "btn_test": {
+    "message": "Test"
+  },
+  "json_editor_title": {
+    "message": "Edit Rules JSON"
+  },
+  "json_editor_save": {
+    "message": "Save"
+  },
+  "json_editor_cancel": {
+    "message": "Cancel"
+  },
+  "tester_title": {
+    "message": "Test"
+  },
+  "notes_title": {
+    "message": "Notes"
+  },
   "note_re2": {
     "message": "Regex is RE2-compatible; some advanced features are unavailable."
   },
@@ -33,32 +68,79 @@
   "note_priority": {
     "message": "If multiple rules match, the upper rule takes precedence."
   },
-
-  "rule_on": { "message": "ON" },
-  "rule_description": { "message": "Description" },
-  "rule_mode": { "message": "Mode" },
-  "mode_redirect": { "message": "Redirect" },
-  "mode_scheme": { "message": "Scheme" },
-  "rule_pattern": { "message": "Match (regex)" },
-  "rule_target": { "message": "Replacement" },
-  "rule_scheme_target": { "message": "Scheme" },
-  "scheme_clear": { "message": "Clear" },
-  "scheme_custom": { "message": "Custom" },
-  "rule_duplicate": { "message": "Duplicate" },
-  "rule_delete": { "message": "Delete" },
-  "rule_test_input_placeholder": { "message": "Test with this rule" },
-  "not_matched": { "message": "No match" },
-  "regex_hint": { "message": "RE2-compatible. Escape \\., \\?, etc." },
-  "regex_invalid": { "message": "Invalid regular expression" },
-  "scheme_clear_note": { "message": "(remove only the leading scheme)" },
-
-  "toast_saved": { "message": "Saved" },
-  "toast_restored": { "message": "Restored" },
-  "toast_copied": { "message": "Copied" },
-  "toast_error": { "message": "Error occurred" },
-  "drag_to_reorder": { "message": "Drag to reorder" },
-  "backup_missing": { "message": "No backup found" },
-  "json_load_failed": { "message": "Failed to load JSON" },
-  "clipboard_read_failed": { "message": "Failed to read clipboard" },
-  "error_prefix": { "message": "Error" }
+  "rule_on": {
+    "message": "ON"
+  },
+  "rule_description": {
+    "message": "Description"
+  },
+  "rule_mode": {
+    "message": "Mode"
+  },
+  "mode_redirect": {
+    "message": "Redirect"
+  },
+  "mode_scheme": {
+    "message": "Scheme"
+  },
+  "rule_pattern": {
+    "message": "Match (regex)"
+  },
+  "rule_target": {
+    "message": "Replacement"
+  },
+  "rule_scheme_target": {
+    "message": "Scheme"
+  },
+  "scheme_clear": {
+    "message": "Clear"
+  },
+  "scheme_custom": {
+    "message": "Custom"
+  },
+  "rule_duplicate": {
+    "message": "Duplicate"
+  },
+  "rule_delete": {
+    "message": "Delete"
+  },
+  "rule_test_input_placeholder": {
+    "message": "Test with this rule"
+  },
+  "not_matched": {
+    "message": "No match"
+  },
+  "regex_hint": {
+    "message": "RE2-compatible. Escape \\., \\?, etc."
+  },
+  "regex_invalid": {
+    "message": "Invalid regular expression"
+  },
+  "scheme_clear_note": {
+    "message": "(remove only the leading scheme)"
+  },
+  "toast_saved": {
+    "message": "Saved"
+  },
+  "toast_restored": {
+    "message": "Restored"
+  },
+  "toast_copied": {
+    "message": "Copied"
+  },
+  "toast_error": {
+    "message": "Error occurred"
+  },
+  "drag_to_reorder": {
+    "message": "Drag to reorder"
+  },
+  "json_load_failed": {
+    "message": "Failed to load JSON"
+  },
+  "clipboard_read_failed": {
+    "message": "Failed to read clipboard"
+  },
+  "error_prefix": {
+    "message": "Error"
+  }
 }
