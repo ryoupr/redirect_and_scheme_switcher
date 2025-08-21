@@ -8,6 +8,7 @@
 	--btn-border: #bfc4c8;
 	--btn-hover: #d2d2d2; /* subtle hover a bit darker than card */
 	--shadow: rgba(0,0,0,0.05);
+	--field-bg: #efefef; /* input/select background */
 }
 
 [data-theme="dark"] {
@@ -20,6 +21,7 @@
 	--btn-border: #30363d;
 	--btn-hover: #1b222c;
 	--shadow: rgba(0,0,0,0.5);
+	--field-bg: #161b22; /* keep consistent with dark button bg */
 	color-scheme: dark;
 }
 
@@ -39,7 +41,7 @@ button:hover { background: var(--btn-hover); }
 .rule-main { display: grid; gap: 8px; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 /* Inputs */
-select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; background: var(--bg); color: var(--fg); }
+select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; background: var(--field-bg); color: var(--fg); }
 .row select { width: 100%; }
 select:focus, input[type="text"]:focus, textarea:focus { outline: 2px solid transparent; box-shadow: 0 0 0 2px rgba(100,150,250,0.25); border-color: var(--btn-border); }
 /* Optional: reduce native quirks without killing the arrow */
@@ -51,7 +53,7 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 select option { background: var(--card); color: var(--fg); }
 .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 label span { display: inline-block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; background: var(--bg); color: var(--fg); }
+input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; background: var(--field-bg); color: var(--fg); }
 .invalid { border-color: #d93025 !important; box-shadow: 0 0 0 2px rgba(217,48,37,0.15) !important; }
 .field-error { color: #d93025; font-size: 12px; margin-top: 4px; min-height: 1em; }
 .rule-actions { display: flex; gap: 8px; align-items: center; }
