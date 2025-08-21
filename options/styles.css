@@ -1,12 +1,12 @@
 :root {
-	--bg: #ffffff;
+	--bg: #f7f7f7; /* softened from pure white to reduce glare */
 	--fg: #1f2328;
 	--muted: #5b6168;
 	--border: #d0d7de;
-	--card: #ffffff;
+	--card: #ffffff; /* keep cards pure white for subtle elevation */
 	--btn-bg: #ffffff;
 	--btn-border: #d0d7de;
-	--btn-hover: #f6f8fa;
+	--btn-hover: #f0f2f4; /* slightly stronger hover to differentiate from new bg */
 	--shadow: rgba(0,0,0,0.04);
 }
 

@@ -1,64 +1,146 @@
 {
-  "appName": { "message": "Redirect & Scheme Switcher" },
+  "appName": {
+    "message": "Redirect & Scheme Switcher"
+  },
   "appDesc": {
     "message": "リダイレクトとスキーム変換を1つに。正規表現で柔軟に制御。GUIとJSONで設定可能。"
   },
-
-  "options_title": { "message": "Redirect & Scheme Switcher" },
-  "options_tagline": { "message": "正規表現でURLをリダイレクト／スキーム変換" },
-  "btn_add_rule": { "message": "ルール追加" },
-  "btn_enable_all": { "message": "一括ON" },
-  "btn_disable_all": { "message": "一括OFF" },
-  "btn_import": { "message": "インポート" },
-  "btn_export": { "message": "エクスポート" },
-  "btn_backup": { "message": "バックアップ保存" },
-  "btn_restore": { "message": "バックアップ復元" },
-  "btn_open_json_editor": { "message": "JSONエディタ" },
-  "btn_theme": { "message": "テーマ" },
-  "btn_lang": { "message": "言語" },
-  "tester_label": { "message": "テストURL" },
-  "btn_paste": { "message": "貼り付け" },
-  "btn_test": { "message": "テスト" },
-  "json_editor_title": { "message": "ルールJSON編集" },
-  "json_editor_save": { "message": "保存" },
-  "json_editor_cancel": { "message": "キャンセル" },
-  "tester_title": { "message": "テスト" },
-  "notes_title": { "message": "使い方のメモ" },
+  "options_title": {
+    "message": "Redirect & Scheme Switcher"
+  },
+  "options_tagline": {
+    "message": "正規表現でURLをリダイレクト／スキーム変換"
+  },
+  "btn_add_rule": {
+    "message": "ルール追加"
+  },
+  "btn_enable_all": {
+    "message": "一括ON"
+  },
+  "btn_disable_all": {
+    "message": "一括OFF"
+  },
+  "btn_import": {
+    "message": "インポート"
+  },
+  "btn_export": {
+    "message": "エクスポート"
+  },
+  "btn_open_json_editor": {
+    "message": "JSONエディタ"
+  },
+  "btn_theme": {
+    "message": "テーマ"
+  },
+  "btn_lang": {
+    "message": "言語"
+  },
+  "tester_label": {
+    "message": "テストURL"
+  },
+  "btn_paste": {
+    "message": "貼り付け"
+  },
+  "btn_test": {
+    "message": "テスト"
+  },
+  "json_editor_title": {
+    "message": "ルールJSON編集"
+  },
+  "json_editor_save": {
+    "message": "保存"
+  },
+  "json_editor_cancel": {
+    "message": "キャンセル"
+  },
+  "tester_title": {
+    "message": "テスト"
+  },
+  "notes_title": {
+    "message": "使い方のメモ"
+  },
   "note_re2": {
     "message": "正規表現はRE2互換で一部の高度な機能は使えません。"
   },
-  "note_backref": { "message": "置換では$1, $2などの後方参照が使えます。" },
+  "note_backref": {
+    "message": "置換では$1, $2などの後方参照が使えます。"
+  },
   "note_priority": {
     "message": "複数のルールがマッチした場合、上にあるルールが優先されます。"
   },
-
-  "rule_on": { "message": "ON" },
-  "rule_description": { "message": "説明" },
-  "rule_mode": { "message": "モード" },
-  "mode_redirect": { "message": "リダイレクト" },
-  "mode_scheme": { "message": "スキーム変換" },
-  "rule_pattern": { "message": "正規表現（マッチ）" },
-  "rule_target": { "message": "置換" },
-  "rule_scheme_target": { "message": "スキーム" },
-  "scheme_clear": { "message": "クリア" },
-  "scheme_custom": { "message": "カスタム" },
-  "rule_duplicate": { "message": "複製" },
-  "rule_delete": { "message": "削除" },
-  "rule_test_input_placeholder": { "message": "このルールでテスト" },
-  "not_matched": { "message": "未マッチ" },
-  "regex_hint": { "message": "RE2互換。\\. や \\? はエスケープが必要です。" },
-  "regex_invalid": { "message": "正規表現が不正です" },
-  "scheme_clear_note": { "message": "（先頭スキームのみ削除）" },
-
-  "toast_saved": { "message": "保存しました" },
-  "toast_restored": { "message": "復元しました" },
-  "toast_copied": { "message": "コピーしました" },
-  "toast_error": { "message": "エラーが発生しました" },
-  "drag_to_reorder": { "message": "ドラッグで並べ替え" },
-  "backup_missing": { "message": "バックアップが見つかりません" },
-  "json_load_failed": { "message": "JSONの読み込みに失敗しました" },
+  "rule_on": {
+    "message": "ON"
+  },
+  "rule_description": {
+    "message": "説明"
+  },
+  "rule_mode": {
+    "message": "モード"
+  },
+  "mode_redirect": {
+    "message": "リダイレクト"
+  },
+  "mode_scheme": {
+    "message": "スキーム変換"
+  },
+  "rule_pattern": {
+    "message": "正規表現（マッチ）"
+  },
+  "rule_target": {
+    "message": "置換"
+  },
+  "rule_scheme_target": {
+    "message": "スキーム"
+  },
+  "scheme_clear": {
+    "message": "クリア"
+  },
+  "scheme_custom": {
+    "message": "カスタム"
+  },
+  "rule_duplicate": {
+    "message": "複製"
+  },
+  "rule_delete": {
+    "message": "削除"
+  },
+  "rule_test_input_placeholder": {
+    "message": "このルールでテスト"
+  },
+  "not_matched": {
+    "message": "未マッチ"
+  },
+  "regex_hint": {
+    "message": "RE2互換。\\. や \\? はエスケープが必要です。"
+  },
+  "regex_invalid": {
+    "message": "正規表現が不正です"
+  },
+  "scheme_clear_note": {
+    "message": "（先頭スキームのみ削除）"
+  },
+  "toast_saved": {
+    "message": "保存しました"
+  },
+  "toast_restored": {
+    "message": "復元しました"
+  },
+  "toast_copied": {
+    "message": "コピーしました"
+  },
+  "toast_error": {
+    "message": "エラーが発生しました"
+  },
+  "drag_to_reorder": {
+    "message": "ドラッグで並べ替え"
+  },
+  "json_load_failed": {
+    "message": "JSONの読み込みに失敗しました"
+  },
   "clipboard_read_failed": {
     "message": "クリップボードの読み取りに失敗しました"
   },
-  "error_prefix": { "message": "エラー" }
+  "error_prefix": {
+    "message": "エラー"
+  }
 }
