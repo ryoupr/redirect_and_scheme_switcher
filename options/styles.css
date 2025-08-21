@@ -1,13 +1,13 @@
 :root {
-	--bg: #f7f7f7; /* softened from pure white to reduce glare */
+	--bg: #f1f2f3; /* softer neutral (was #f7f7f7) */
 	--fg: #1f2328;
 	--muted: #5b6168;
-	--border: #d0d7de;
-	--card: #ffffff; /* keep cards pure white for subtle elevation */
-	--btn-bg: #ffffff;
-	--btn-border: #d0d7de;
-	--btn-hover: #f0f2f4; /* slightly stronger hover to differentiate from new bg */
-	--shadow: rgba(0,0,0,0.04);
+	--border: #c9d1d9; /* 少しだけコントラストを落とす */
+	--card: #fafafa; /* 純白→僅かにトーンダウン */
+	--btn-bg: #fafafa;
+	--btn-border: #cfd6dd;
+	--btn-hover: #e8ebee; /* さらに分かりやすいホバー */
+	--shadow: rgba(0,0,0,0.035);
 }
 
 [data-theme="dark"] {
