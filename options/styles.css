@@ -1,13 +1,13 @@
 :root {
-	--bg: #f1f2f3; /* softer neutral (was #f7f7f7) */
+	--bg: #dadada; /* user requested darker neutral to reduce glare */
 	--fg: #1f2328;
 	--muted: #5b6168;
-	--border: #c9d1d9; /* 少しだけコントラストを落とす */
-	--card: #fafafa; /* 純白→僅かにトーンダウン */
-	--btn-bg: #fafafa;
-	--btn-border: #cfd6dd;
-	--btn-hover: #e8ebee; /* さらに分かりやすいホバー */
-	--shadow: rgba(0,0,0,0.035);
+	--border: #bfc4c8; /* adjust for new palette */
+	--card: #e7e7e7; /* user requested rule card background */
+	--btn-bg: #e7e7e7; /* align buttons with card */
+	--btn-border: #bfc4c8;
+	--btn-hover: #d2d2d2; /* subtle hover a bit darker than card */
+	--shadow: rgba(0,0,0,0.05);
 }
 
 [data-theme="dark"] {
