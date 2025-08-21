@@ -300,4 +300,10 @@ function transformScheme(inputUrl, schemeTarget) {
 }
 
 // ----- Eager warm-up -----
-(async () => { await initializeAll(); })();
+(async () => {
+  try {
+    await initializeAll();
+  } catch (e) {
+    console.error('Failed to initialize extension:', e);
+  }
+})();
