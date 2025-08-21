@@ -62,6 +62,7 @@ async function initializeAll() {
     ]);
   } catch (e) {
     console.warn('[initializeAll] 初期化失敗:', e);
+    throw e;
   }
 
 // storage 変更で DNR + キャッシュ更新
